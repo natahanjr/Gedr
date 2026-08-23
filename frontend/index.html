@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gədr — Security Analysis</title>
+<link rel="stylesheet" href="/static/style.css?v=2">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
+</head>
+<body>
+
+<!-- ======= NAVBAR ======= -->
+<header class="navbar">
+  <div class="navbar-inner">
+    <div class="brand">
+      <span class="brand-icon">🛡️</span>
+      <div>
+        <div class="brand-title">Gədr</div>
+        <div class="brand-sub">AI-Enhanced Security Analysis</div>
+      </div>
+    </div>
+    <nav class="tabs">
+      <button class="tab active" data-page="scan">Scan</button>
+      <button class="tab" data-page="ai">AI Analysis</button>
+      <button class="tab" data-page="dashboard">Dashboard</button>
+      <button class="tab" data-page="findings">Findings</button>
+    </nav>
+    <div class="status-pill" id="ai-status">
+      <span class="dot"></span>
+      <span id="ai-status-text">Checking…</span>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- ======= SCAN PAGE ======= -->
+  <section id="page-scan" class="page">
+    <div class="hero">
+      <h1>Security Scan</h1>
+      <p>Upload source code or point to a project directory. Detect vulnerabilities across Python, Java, C/C++, PHP, JavaScript, HTML, and CSS.</p>
+      <div class="chip-row">
+        <span class="chip">Python</span>
+        <span class="chip">Java</span>
+        <span class="chip">C/C++</span>
+        <span class="chip">PHP</span>
+        <span class="chip">JavaScript</span>
+        <span class="chip">Go</span>
+        <span class="chip">Ruby</span>
+        <span class="chip">Rust</span>
+        <span class="chip">C#</span>
+        <span class="chip">Kotlin</span>
+        <span class="chip">Swift</span>
+        <span class="chip">Shell</span>
+        <span class="chip">SQL</span>
+        <span class="chip">HTML/CSS</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-tabs">
+        <button class="card-tab active" data-scan-mode="upload">Upload File</button>
+        <button class="card-tab" data-scan-mode="path">Scan Directory</button>
+        <button class="card-tab" data-scan-mode="external">External Scanner</button>
+      </div>
+
+      <!-- Upload Mode -->
+      <div id="mode-upload">
+        <div id="dropzone" class="dropzone">
+          <span class="dz-icon">⬆️</span>
+          <p class="dz-text"><strong>Drop a file here</strong> or <span class="link">browse</span></p>
+          <p class="dz-hint">.py .java .c .cpp .php .js .html .css and more</p>
+          <input type="file" id="file-input" accept=".py,.pyw,.java,.c,.cc,.cpp,.cxx,.h,.hpp,.php,.phtml,.js,.jsx,.ts,.mjs,.html,.htm,.xhtml,.css,.go,.rb,.erb,.rs,.cs,.kt,.kts,.swift,.sh,.bash,.sql" hidden>
+        </div>
+      </div>
+
+      <!-- Path Scan Mode -->
+      <div id="mode-path" style="display:none">
+        <label class="field-label" for="path-input">Directory or File Path</label>
+        <div class="path-row">
+          <input type="text" id="path-input" placeholder="/path/to/project" autocomplete="off">
+          <button class="btn btn-primary" id="scan-path-btn">Scan</button>
+        </div>
+        <p class="hint" style="margin-top: 8px;">Recursive scan of directory and subdirectories</p>
+      </div>
+
+      <!-- External Scanner Mode -->
+      <div id="mode-external" style="display:none">
+        <label class="field-label" for="connector-select">External Scanner</label>
+        <select id="connector-select" class="select"><option>Loading connectors…</option></select>
+        <label class="field-label" for="external-target" style="margin-top:14px">Target (host, IP, or URL)</label>
+        <div class="path-row">
+          <input type="text" id="external-target" placeholder="e.g., 192.168.1.1 or https://example.com" autocomplete="off">
+          <button class="btn btn-primary" id="external-scan-btn">Scan</button>
+        </div>
+        <p class="hint" style="margin-top: 8px;">Runs the selected external scanner against the target network host</p>
+      </div>
+
+      <!-- Options -->
+      <div class="options-row">
+        <label class="checkbox">
+          <input type="checkbox" id="use-ai">
+          <span>Enable AI analysis</span>
+        </label>
+        <span id="ai-hint" class="hint">Adds remediation guidance to each finding</span>
+      </div>
+      <button class="btn btn-primary btn-block" id="scan-btn" disabled>Start Scan</button>
+    </div>
+
+    <!-- Scan Result -->
+    <div id="scan-result" class="hidden"></div>
+  </section>
+
+  <!-- ======= AI ANALYSIS PAGE ======= -->
+  <section id="page-ai" class="page hidden">
+    <div class="hero">
+      <h1>AI Security Analysis</h1>
+      <p>Select a scan to generate an AI-powered executive summary and remediation priorities.</p>
+    </div>
+
+    <div class="card">
+      <div class="options-row">
+        <div style="flex:1; max-width:500px">
+          <label class="field-label" for="ai-project-select">Project</label>
+          <select id="ai-project-select" class="select"><option>Select project…</option></select>
+        </div>
+        <div style="flex:1; max-width:500px">
+          <label class="field-label" for="ai-scan-select">Scan</label>
+          <select id="ai-scan-select" class="select"><option>Select scan…</option></select>
+        </div>
+        <div style="display:flex; align-items:flex-end">
+          <button class="btn btn-primary" id="ai-analyze-btn" disabled>✨ Generate Summary</button>
+        </div>
+      </div>
+      <div id="ai-summary-panel"></div>
+    </div>
+  </section>
+
+  <!-- ======= DASHBOARD PAGE ======= -->
+  <section id="page-dashboard" class="page hidden">
+    <div class="row-between">
+      <h2>Dashboard</h2>
+      <button class="btn btn-outline btn-sm btn-danger" id="clear-history">Clear History</button>
+    </div>
+
+    <div id="project-grid" class="project-grid">
+      <div class="empty">No projects yet. Run a scan to get started.</div>
+    </div>
+
+    <div id="dash-detail" class="hidden">
+      <div class="card">
+        <div class="row-between">
+          <h3 id="dash-project-name">Project</h3>
+          <div class="dash-actions">
+            <select id="scan-select" class="select"></select>
+            <button class="btn btn-primary btn-sm" id="dash-ai-analyze" disabled>AI Analysis</button>
+            <button class="btn btn-outline btn-sm" id="dash-download-report">PDF Report</button>
+          </div>
+        </div>
+        <div id="dash-scan-body"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======= FINDINGS PAGE ======= -->
+  <section id="page-findings" class="page hidden">
+    <div class="row-between">
+      <h2>Findings</h2>
+      <div class="dash-actions">
+        <button class="btn btn-primary btn-sm" id="ai-analyze-all" disabled>AI Analysis</button>
+        <button class="btn btn-outline btn-sm" id="download-report" disabled>PDF Report</button>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters">
+      <select id="findings-project" class="select"><option>Select project…</option></select>
+      <select id="findings-scan" class="select"><option>Select scan…</option></select>
+      <div class="sev-filters">
+        <label class="sev-check crit"><input type="checkbox" class="sev-filter" value="Critical" checked> Critical</label>
+        <label class="sev-check high"><input type="checkbox" class="sev-filter" value="High" checked> High</label>
+        <label class="sev-check med"><input type="checkbox" class="sev-filter" value="Medium"> Medium</label>
+        <label class="sev-check low"><input type="checkbox" class="sev-filter" value="Low"> Low</label>
+      </div>
+    </div>
+
+    <!-- Findings List -->
+    <div id="findings-list" class="findings-list">
+      <div class="empty">Select a project and scan to view findings.</div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ======= FOOTER ======= -->
+<footer class="footer">
+  <span>Gədr</span>
+  <span id="tool-status"></span>
+</footer>
+
+<!-- Toast -->
+<div id="toast" class="toast hidden"></div>
+
+<script src="/static/app.js?v=2"></script>
+</body>
+</html>

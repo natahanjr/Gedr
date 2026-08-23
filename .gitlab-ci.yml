@@ -1,0 +1,28 @@
+# GitLab CI Pipeline Configuration for Gədr
+
+stages:
+  - test
+  - scan
+
+variables:
+  PYTHON_VERSION: "3.11"
+
+run_tests:
+  stage: test
+  image: python:${PYTHON_VERSION}
+  script:
+    - pip install -r requirements.txt
+    - pip install pytest
+    - python tests/smoke_test.py
+    - pytest -q
+
+security_scan:
+  stage: scan
+  image: python:${PYTHON_VERSION}
+  script:
+    - pip install -r requirements.txt
+    - # Add command to trigger the Gədr API scan here
+    - echo "Scanning project..."
+  only:
+    - main
+    - master

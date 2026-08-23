@@ -1,0 +1,36 @@
+# --- Secrets & local config ---
+.env
+*.env
+!.env.example
+
+# --- Runtime artifacts ---
+cybercode.db
+*.db-journal
+*.db-wal
+*.db-shm
+logs/
+uploads/
+reports/output/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.pyc
+
+# --- IDE / OS ---
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# --- Thesis development scaffolding (kept local, not part of the repo) ---
+_archive_dev/
