@@ -310,3 +310,7 @@ Gedr/
    a professional product look without a Node toolchain, keeping RAM/disk usage minimal.
 6. **Defense in depth** — authentication, authorization, rate limiting, path validation, and
    input sanitization work together to prevent common attack vectors.
+
+---
+
+*Last updated: August 2026*
