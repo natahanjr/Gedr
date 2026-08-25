@@ -474,7 +474,7 @@ def download_report(scan_id: str):
     return FileResponse(
         out,
         media_type="application/pdf",
-        filename=f"cybercode_report_{scan_id}.pdf",
+        filename=out.name,
         background=BackgroundTask(os.unlink, tmp_path),
     )
 

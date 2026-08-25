@@ -79,12 +79,29 @@ Request → Tier 1: Gədr Fast (primary)
 Each finding receives a deep explanation: what the vulnerability is, potential impact,
 root cause, step-by-step attack scenario, recommended fix, and a secure code example.
 
-### PDF reports
+### PDF reports (Gedr Reporting Engine 3.0)
 
-Professional dark-themed security assessment reports (Apple-inspired design):
-- Executive summary with security score card and severity breakdown
-- Per-finding deep-dive cards with vulnerable code and secure code examples
-- Methodology appendix with scoring model and classification reference
+Reports are produced by a dedicated reporting pipeline, not a simple export:
+
+```
+DATA -> REPORT MODEL -> SECTION GENERATION -> VISUALISATION
+     -> PDF LAYOUT -> VALIDATION -> DELIVERY
+```
+
+- `reports/report_model.py` - normalises/aggregates platform records; nothing
+  is invented (sections without data are omitted, empty scans produce a
+  meaningful "No Significant Findings" report)
+- `reports/sanitizer.py` - credential redaction before any evidence is embedded
+- `reports/charts.py` - native vector charts (severity ring, score meter,
+  category bars) - crisp in print, greyscale-safe
+- `reports/layout.py` - design system: cover, running headers/footers,
+  numbered sections, finding cards, repeating table headers, page X of Y
+- `reports/validator.py` - automated QC (structure, blank pages, content
+  presence, metadata) before delivery; critical failures abort the export
+
+Output: `GDR_Security_Analysis_Report_<REPORT-ID>_<DATE>.pdf` with report ID,
+classification, analysis window, integrity digest and full methodology
+appendix.
 
 ---
 
@@ -265,7 +282,15 @@ Gedr/
 ├── database/
 │   └── sqlite_manager.py        # SQLite persistence
 ├── reports/
-│   └── pdf_generator.py         # fpdf2 report generation
+│   └── pdf_generator.py         # compat shim -> reports/ reporting engine
+├── reports/                     # Gedr Reporting Engine (see "PDF reports")
+│   ├── generator.py             #   pipeline orchestrator + section builders
+│   ├── report_model.py          #   data layer: normalise, aggregate, digest
+│   ├── sanitizer.py             #   credential redaction for evidence
+│   ├── theme.py                 #   design system (palette, type, severity)
+│   ├── charts.py                #   native vector visualisations
+│   ├── layout.py                #   GedrPDF layout engine + components
+│   └── validator.py             #   automated report QC before delivery
 ├── docker/
 │   └── Dockerfile.scanners      # Scanner environment container
 ├── sample_code/                 # vulnerable test files
