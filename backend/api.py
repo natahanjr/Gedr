@@ -268,23 +268,36 @@ def _scan_response(result: dict) -> dict:
 
 # ----------------------------------------------------------------------
 @app.get("/api/projects")
-def list_projects():
-    projects = db.list_projects()
+def list_projects(request: Request, page: int = 1, limit: int = 50):
+    projects, total = db.list_projects(page=page, limit=limit)
     out = []
     for pr in projects:
-        scans = db.list_scans(pr["id"])
+        scans, _ = db.list_scans(pr["id"], page=1, limit=1)
         latest = scans[0] if scans else None
         out.append({**pr, "last_score": latest.get("security_score") if latest else None,
                     "last_scan": latest.get("started_at") if latest else None})
-    return out
+    return {
+        "items": out,
+        "page": page,
+        "limit": limit,
+        "total": total,
+        "pages": (total + limit - 1) // limit,
+    }
 
 
 @app.get("/api/projects/{project_id}")
-def get_project(project_id: str):
+def get_project(project_id: str, page: int = 1, limit: int = 50):
     project = db.get_project(project_id)
     if not project:
         raise HTTPException(404, "Project not found")
-    return {**project, "scans": db.list_scans(project_id)}
+    scans, total = db.list_scans(project_id, page=page, limit=limit)
+    return {
+        **project,
+        "scans": scans,
+        "scans_page": page,
+        "scans_total": total,
+        "scans_pages": (total + limit - 1) // limit,
+    }
 
 
 # ----------------------------------------------------------------------
