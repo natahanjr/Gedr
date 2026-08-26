@@ -1,20 +1,6 @@
 version: '3.8'
 
 services:
-  # Database Service
-  db:
-    image: postgres:15-alpine
-    container_name: gedr-db
-    restart: always
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-gedr}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
-      POSTGRES_DB: ${POSTGRES_DB:-gedr}
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
   # Backend API Service
   backend:
     build:
@@ -26,16 +12,13 @@ services:
       - "8000:8000"
     environment:
       SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
-      DATABASE_URL: postgresql://${POSTGRES_USER:-gedr}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-gedr}
       CCI_AI_API_KEY: ${CCI_AI_API_KEY:-}
       CCI_AI_PROVIDER: ${CCI_AI_PROVIDER:-native}
       CCI_AI_BASE_URL: ${CCI_AI_BASE_URL:-}
       CCI_AI_MODEL: ${CCI_AI_MODEL:-}
       CCI_ALLOWED_SCAN_ROOTS: ${CCI_ALLOWED_SCAN_ROOTS:-}
-    depends_on:
-      - db
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -57,7 +40,7 @@ services:
       AI_PRIMARY_MODEL: ${AI_PRIMARY_MODEL:-}
       AI_PRIMARY_URL: ${AI_PRIMARY_URL:-}
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8002/ai/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/ai/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -92,6 +75,5 @@ services:
     entrypoint: ["sleep", "infinity"]
 
 volumes:
-  postgres_data:
   openvas_data:
   gedr_data:
