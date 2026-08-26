@@ -9,6 +9,7 @@ Prevents:
   - Path traversal in archive contents
 """
 import mimetypes
+import tarfile
 import tempfile
 import zipfile
 from pathlib import Path
@@ -135,6 +136,9 @@ def validate_file_content(data: bytes, filename: str, max_size: int = MAX_FILE_S
     
     if _is_zip_bomb(data):
         raise UploadValidationError("Uploaded file looks like a zip bomb (suspicious compression)")
+    
+    if _is_tar_bomb(data):
+        raise UploadValidationError("Uploaded file looks like a tar bomb (suspicious compression)")
 
 
 def _is_binary_executable(data: bytes) -> bool:
@@ -154,9 +158,22 @@ def _is_binary_executable(data: bytes) -> bool:
     if data[:2] == b"MZ":
         return True
     
-    # Mach-O (macOS)
-    if data[:4] in (b"\xfe\xed\xfa\xce", b"\xfe\xed\xfa\xcf", b"\xce\xfa\xed\xfe", b"\xcf\xfa\xed\xfe"):
+    # Java class file
+    if data[:4] == b"\xca\xfe\xba\xbe":
         return True
+    
+    # .NET assembly
+    if data[:4] == b"\x00\x01\x00\x00":
+        return True
+    
+    # Script with shebang (but allow Python/Shell scripts we want to scan)
+    if data[:2] == b"#!":
+        first_line = data.split(b"\n", 1)[0].decode("utf-8", errors="replace")
+        # Block dangerous interpreters but allow Python/Shell
+        dangerous = ["bash", "sh", "zsh", "csh", "ksh"]
+        for interp in dangerous:
+            if f"/{interp}" in first_line:
+                return True
     
     return False
 
@@ -190,6 +207,45 @@ def _is_zip_bomb(data: bytes) -> bool:
             Path(tmp_path).unlink(missing_ok=True)
     except (zipfile.BadZipFile, Exception):
         # Not a valid zip or other error - not a bomb
+        pass
+    
+    return False
+
+
+def _is_tar_bomb(data: bytes) -> bool:
+    """Detect suspicious tar archives (tar bomb indicator)."""
+    # Check for tar magic bytes (ustar at offset 257)
+    if len(data) < 263:
+        return False
+    
+    # Check tar magic: "ustar" at offset 257
+    tar_magic = data[257:262]
+    if tar_magic != b"ustar":
+        return False
+    
+    try:
+        import io
+        with tarfile.open(fileobj=io.BytesIO(data), mode="r:*") as tf:
+            total_compressed = len(data)
+            total_uncompressed = sum(member.size for member in tf.getmembers())
+            
+            if total_uncompressed > 0:
+                ratio = total_uncompressed / total_compressed
+                # Suspicious if ratio > 100x
+                if ratio > 100:
+                    return True
+            
+            # Check file count
+            if len(tf.getmembers()) > MAX_ARCHIVE_FILES:
+                return True
+            
+            # Check for suspicious entries (absolute paths, /dev/zero, etc.)
+            for member in tf.getmembers():
+                if member.name.startswith("/") or member.name.startswith(".."):
+                    return True
+                if member.size > 100 * 1024 * 1024:  # Single file > 100MB
+                    return True
+    except (tarfile.TarError, Exception):
         pass
     
     return False
