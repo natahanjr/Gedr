@@ -1,0 +1,846 @@
+/*
+ * Gədr Premium Report - Professional Design System
+ * Version: 2.0
+ * 
+ * Design Principles:
+ * - Clean typography with generous whitespace
+ * - Subtle gradients and depth
+ * - Glass morphism effects
+ * - Premium micro-interactions
+ */
+
+/* === CSS Reset & Base === */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    /* Typography */
+    --font-sans: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --font-mono: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    
+    /* Colors - Refined palette */
+    --color-bg: #FFFFFF;
+    --color-surface: #F5F5F7;
+    --color-surface-elevated: #FFFFFF;
+    --color-surface-glass: rgba(255, 255, 255, 0.72);
+    --color-border: rgba(0, 0, 0, 0.08);
+    --color-border-strong: rgba(0, 0, 0, 0.12);
+    
+    /* Text Colors - Hierarchy */
+    --color-text-primary: #1D1D1F;
+    --color-text-secondary: #6E6E73;
+    --color-text-tertiary: #AEAEB2;
+    --color-text-quaternary: #C7C7CC;
+    
+    /* Brand Colors */
+    --color-navy: #142850;
+    --color-navy-light: #1E3A5F;
+    --color-steel: #2B547C;
+    --color-accent: #007AFF;
+    --color-accent-light: #5AC8FA;
+    
+    /* Severity Colors - Vibrant */
+    --color-critical: #FF3B30;
+    --color-critical-bg: linear-gradient(135deg, #FFF5F5 0%, #FFE5E5 100%);
+    --color-critical-border: rgba(255, 59, 48, 0.2);
+    --color-high: #FF9500;
+    --color-high-bg: linear-gradient(135deg, #FFF9F0 0%, #FFE5C3 100%);
+    --color-high-border: rgba(255, 149, 0, 0.2);
+    --color-medium: #FFCC00;
+    --color-medium-bg: linear-gradient(135deg, #FFFCF0 0%, #FFF3B0 100%);
+    --color-medium-border: rgba(255, 204, 0, 0.2);
+    --color-low: #34C759;
+    --color-low-bg: linear-gradient(135deg, #F0FFF4 0%, #C3E6CB 100%);
+    --color-low-border: rgba(52, 199, 89, 0.2);
+    
+    /* Spacing - 8px grid */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-10: 40px;
+    --space-12: 48px;
+    --space-16: 64px;
+    
+    /* Border Radius - Softer */
+    --radius-xs: 4px;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --radius-2xl: 24px;
+    
+    /* Shadows - Layered depth */
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.1);
+    --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.12);
+    --shadow-glow: 0 0 40px rgba(0, 122, 255, 0.15);
+    
+    /* Gradients */
+    --gradient-navy: linear-gradient(135deg, #142850 0%, #1E3A5F 50%, #2B547C 100%);
+    --gradient-surface: linear-gradient(180deg, #FFFFFF 0%, #F5F5F7 100%);
+    --gradient-card: linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(245,245,247,0.9) 100%);
+}
+
+/* === Page Setup === */
+@page {
+    size: A4 portrait;
+    margin: 0;
+    
+    @top-center {
+        content: "";
+    }
+    
+    @bottom-center {
+        content: counter(page) " / " counter(pages);
+        font-family: var(--font-sans);
+        font-size: 9pt;
+        color: var(--color-text-tertiary);
+    }
+}
+
+@page :first {
+    margin: 0;
+}
+
+/* === Body === */
+body {
+    font-family: var(--font-sans);
+    font-size: 10pt;
+    line-height: 1.6;
+    color: var(--color-text-primary);
+    background: var(--color-bg);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    margin: 0;
+    padding: 0;
+}
+
+/* === Cover Page - Premium Dark Design === */
+.cover-page {
+    width: 100%;
+    height: 297mm;
+    background-color: #0a0a0f;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    position: relative;
+    overflow: hidden;
+    page-break-after: always;
+}
+
+.cover-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(10, 10, 15, 0.85) 0%, rgba(20, 40, 80, 0.75) 100%);
+    z-index: 1;
+}
+
+.cover-content {
+    text-align: center;
+    position: relative;
+    z-index: 2;
+    max-width: 600px;
+}
+
+.cover-logo {
+    width: 120px;
+    height: 120px;
+    margin: 0 auto var(--space-8);
+    opacity: 1;
+    filter: drop-shadow(0 4px 30px rgba(255,255,255,0.3));
+}
+
+.cover-title {
+    font-size: 42pt;
+    font-weight: 700;
+    color: #FFFFFF;
+    letter-spacing: -0.5px;
+    line-height: 1.1;
+    margin-bottom: var(--space-4);
+    text-shadow: 0 2px 20px rgba(0,0,0,0.2);
+}
+
+.cover-subtitle {
+    font-size: 18pt;
+    font-weight: 500;
+    color: rgba(255,255,255,0.8);
+    margin-bottom: var(--space-12);
+    letter-spacing: 0.5px;
+}
+
+.cover-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-4);
+    margin-top: var(--space-10);
+}
+
+.meta-item {
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    text-align: left;
+}
+
+.meta-label {
+    font-size: 8pt;
+    font-weight: 600;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: var(--space-2);
+}
+
+.meta-value {
+    font-size: 13pt;
+    font-weight: 600;
+    color: #FFFFFF;
+}
+
+/* === Severity Tiles - Cover === */
+.severity-tiles {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-3);
+    margin-top: var(--space-10);
+}
+
+.severity-tile {
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    text-align: center;
+    transition: transform 0.2s ease;
+}
+
+.severity-tile:hover {
+    transform: translateY(-2px);
+}
+
+.severity-count {
+    font-size: 28pt;
+    font-weight: 700;
+    color: #FFFFFF;
+    line-height: 1;
+    margin-bottom: var(--space-2);
+    text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.severity-label {
+    font-size: 8pt;
+    font-weight: 600;
+    color: rgba(255,255,255,0.6);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* === Table of Contents === */
+.toc {
+    padding: 20mm 25mm;
+    page-break-after: always;
+}
+
+.toc-title {
+    font-size: 24pt;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin-bottom: 24pt;
+    padding-bottom: 12pt;
+    border-bottom: 2px solid var(--color-navy);
+}
+
+.toc-list {
+    list-style: none;
+    padding: 0;
+}
+
+.toc-item {
+    display: flex;
+    align-items: center;
+    padding: 10pt 0;
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.toc-number {
+    font-size: 12pt;
+    font-weight: 700;
+    color: var(--color-navy);
+    width: 30pt;
+    flex-shrink: 0;
+}
+
+.toc-text {
+    font-size: 12pt;
+    font-weight: 500;
+    color: var(--color-text-primary);
+}
+
+.toc-dots {
+    flex: 1;
+    border-bottom: 1px dotted var(--color-text-quaternary);
+    margin: 0 12pt;
+    height: 1px;
+    align-self: flex-end;
+    margin-bottom: 4pt;
+}
+
+/* === Content Pages === */
+.page {
+    padding: 20mm 25mm;
+    min-height: auto;
+}
+
+/* === Section Headers === */
+.section {
+    margin-bottom: 20pt;
+    padding: 0;
+}
+
+.section-title {
+    font-size: 18pt;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin-bottom: 12pt;
+    padding-bottom: 6pt;
+    border-bottom: 2px solid var(--color-navy);
+    letter-spacing: -0.3px;
+}
+
+/* === Executive Summary Metrics === */
+.summary-metrics {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12pt;
+    margin-bottom: 16pt;
+}
+
+.metric-card {
+    background: var(--gradient-card);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 14pt 10pt;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+}
+
+.metric-value {
+    font-size: 28pt;
+    font-weight: 700;
+    color: var(--color-navy);
+    line-height: 1;
+    margin-bottom: 4pt;
+}
+
+.metric-card:nth-child(2) .metric-value { color: var(--color-critical); }
+.metric-card:nth-child(3) .metric-value { color: var(--color-high); }
+.metric-card:nth-child(4) .metric-value { color: var(--color-medium); }
+.metric-card:nth-child(5) .metric-value { color: var(--color-low); }
+
+.metric-label {
+    font-size: 7pt;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* === AI Summary Box === */
+.ai-summary {
+    background: var(--gradient-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 16pt;
+    position: relative;
+    overflow: hidden;
+}
+
+.ai-summary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+}
+
+.ai-summary p {
+    font-size: 10pt;
+    line-height: 1.7;
+    color: var(--color-text-primary);
+    font-weight: 400;
+}
+
+/* === Cards - Glass Morphism === */
+.card {
+    background: var(--gradient-card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 16pt;
+    box-shadow: var(--shadow-sm);
+}
+
+.card-title {
+    font-size: 11pt;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin-bottom: 12pt;
+    letter-spacing: -0.2px;
+}
+
+/* === Two Column Layout === */
+.two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14pt;
+}
+
+/* === Charts - Premium Bars === */
+.chart-row {
+    margin-bottom: 10pt;
+}
+
+.chart-label-group {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4pt;
+    font-size: 9pt;
+}
+
+.chart-label-group span:first-child {
+    color: var(--color-text-primary);
+    font-weight: 500;
+}
+
+.chart-label-group span:last-child {
+    color: var(--color-text-secondary);
+    font-weight: 600;
+}
+
+.chart-bar {
+    height: 6px;
+    background: var(--color-surface);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+}
+
+.bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+.bar-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 100%);
+}
+
+.bar-fill.critical { background: linear-gradient(90deg, var(--color-critical) 0%, #FF6B6B 100%); }
+.bar-fill.high { background: linear-gradient(90deg, var(--color-high) 0%, #FFB84D 100%); }
+.bar-fill.medium { background: linear-gradient(90deg, var(--color-medium) 0%, #FFD93D 100%); }
+.bar-fill.low { background: linear-gradient(90deg, var(--color-low) 0%, #6BD88B 100%); }
+
+/* === Finding Cards - Premium Design === */
+.finding-card {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 16pt;
+    margin-bottom: 14pt;
+    box-shadow: var(--shadow-sm);
+    page-break-inside: avoid;
+    position: relative;
+    overflow: hidden;
+}
+
+.finding-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 3px;
+    height: 100%;
+    background: var(--color-navy);
+}
+
+.finding-card:has(.severity-badge.critical)::before { background: var(--color-critical); }
+.finding-card:has(.severity-badge.high)::before { background: var(--color-high); }
+.finding-card:has(.severity-badge.medium)::before { background: var(--color-medium); }
+.finding-card:has(.severity-badge.low)::before { background: var(--color-low); }
+
+.finding-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8pt;
+}
+
+.finding-id {
+    font-family: var(--font-mono);
+    font-size: 8pt;
+    color: var(--color-text-tertiary);
+    background: var(--color-surface);
+    padding: 2pt 8pt;
+    border-radius: var(--radius-xs);
+    font-weight: 500;
+}
+
+.finding-title {
+    font-size: 13pt;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin-bottom: 8pt;
+    letter-spacing: -0.2px;
+    line-height: 1.3;
+}
+
+/* === Finding Location - Premium Badge === */
+.finding-location {
+    display: flex;
+    align-items: center;
+    gap: 10pt;
+    background: var(--color-surface);
+    border-radius: var(--radius-sm);
+    padding: 8pt 12pt;
+    margin-bottom: 10pt;
+    border: 1px solid var(--color-border);
+}
+
+.location-icon {
+    font-size: 14px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-bg);
+    border-radius: var(--radius-xs);
+    box-shadow: var(--shadow-xs);
+}
+
+.location-details {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.location-file {
+    font-family: var(--font-mono);
+    font-size: 9pt;
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.location-line {
+    font-size: 8pt;
+    color: var(--color-text-secondary);
+}
+
+/* === Finding Meta === */
+.finding-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6pt;
+    font-size: 8pt;
+    color: var(--color-text-secondary);
+    margin-bottom: 10pt;
+}
+
+.finding-meta span {
+    display: flex;
+    align-items: center;
+    gap: 3pt;
+    background: var(--color-surface);
+    padding: 2pt 6pt;
+    border-radius: var(--radius-xs);
+}
+
+.finding-desc {
+    font-size: 9.5pt;
+    line-height: 1.6;
+    color: var(--color-text-secondary);
+    margin-bottom: 12pt;
+}
+
+/* === Finding Analysis Sections === */
+.finding-section {
+    margin-bottom: 10pt;
+    padding: 10pt;
+    background: var(--color-surface);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+}
+
+.finding-section-title {
+    font-size: 7pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--color-text-tertiary);
+    margin-bottom: 6pt;
+}
+
+.finding-section p {
+    font-size: 9pt;
+    line-height: 1.6;
+    color: var(--color-text-primary);
+}
+
+/* === Severity Badges - Refined === */
+.severity-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3pt;
+    padding: 2pt 8pt;
+    border-radius: 100px;
+    font-size: 8pt;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.severity-badge.critical {
+    background: var(--color-critical-bg);
+    color: var(--color-critical);
+    border: 1px solid var(--color-critical-border);
+}
+
+.severity-badge.high {
+    background: var(--color-high-bg);
+    color: var(--color-high);
+    border: 1px solid var(--color-high-border);
+}
+
+.severity-badge.medium {
+    background: var(--color-medium-bg);
+    color: #B8860B;
+    border: 1px solid var(--color-medium-border);
+}
+
+.severity-badge.low {
+    background: var(--color-low-bg);
+    color: #1E7E34;
+    border: 1px solid var(--color-low-border);
+}
+
+/* === Code Blocks - Xcode Style === */
+.code-block {
+    background: #1E1E1E;
+    color: #D4D4D4;
+    border-radius: var(--radius-sm);
+    padding: 10pt;
+    font-family: var(--font-mono);
+    font-size: 8.5pt;
+    line-height: 1.6;
+    overflow-x: auto;
+    margin: 8pt 0;
+    border: 1px solid #2D2D2D;
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.3);
+    position: relative;
+}
+
+.code-block::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 24px;
+    background: linear-gradient(180deg, #2D2D2D 0%, #1E1E1E 100%);
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    border-bottom: 1px solid #3D3D3D;
+}
+
+.code-line {
+    display: flex;
+    position: relative;
+    z-index: 1;
+}
+
+.code-number {
+    color: #5A5A5A;
+    width: 28px;
+    user-select: none;
+    text-align: right;
+    padding-right: 8pt;
+    flex-shrink: 0;
+    font-size: 8pt;
+}
+
+.code-text {
+    flex: 1;
+    white-space: pre-wrap;
+    color: #D4D4D4;
+}
+
+/* === Remediation Plan === */
+.remediation-group {
+    margin-bottom: 16pt;
+}
+
+.remediation-group h4 {
+    margin-bottom: 8pt;
+}
+
+.remediation-group ul {
+    list-style: none;
+    padding: 0;
+}
+
+.remediation-group li {
+    padding: 10pt;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    margin-bottom: 6pt;
+}
+
+.remediation-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6pt;
+}
+
+.remediation-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4pt;
+}
+
+.remediation-header strong {
+    font-size: 9pt;
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.remediation-location {
+    font-family: var(--font-mono);
+    font-size: 7pt;
+    color: var(--color-text-tertiary);
+    background: var(--color-surface);
+    padding: 2pt 4pt;
+    border-radius: var(--radius-xs);
+}
+
+.remediation-fix {
+    font-size: 8.5pt;
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+}
+
+/* === Tables - Clean === */
+.severity-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 9pt;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+}
+
+.severity-table th {
+    text-align: left;
+    padding: 8pt 10pt;
+    background: var(--color-surface);
+    font-weight: 600;
+    color: var(--color-text-primary);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.severity-table td {
+    padding: 8pt 10pt;
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.severity-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* === Appendix === */
+.appendix {
+    font-size: 9pt;
+    color: var(--color-text-secondary);
+    padding: 16pt;
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+}
+
+.appendix h3 {
+    font-size: 10pt;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin: 12pt 0 6pt;
+}
+
+.appendix h3:first-child {
+    margin-top: 0;
+}
+
+.appendix p {
+    line-height: 1.7;
+    margin-bottom: 6pt;
+}
+
+/* === Report Footer === */
+.report-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12pt 0;
+    font-size: 8pt;
+    color: var(--color-text-tertiary);
+    border-top: 1px solid var(--color-border);
+    margin-top: 24pt;
+}
+
+/* === Print Styles === */
+@media print {
+    body {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .cover-page {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .finding-card {
+        break-inside: avoid;
+    }
+}
