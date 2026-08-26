@@ -279,24 +279,39 @@ class ScannerManager:
 
     # ------------------------------------------------------------------
     def _run_external_tools(self, source: Path, language: str) -> list[dict]:
+        """Run external tools for all detected languages, not just the dominant one."""
         out = []
         try:
-            if language == "python":
-                if shutil.which("bandit"):
-                    out += SCANNER_INSTANCES["python"].run_bandit(source)
-                if shutil.which("semgrep"):
-                    out += SCANNER_INSTANCES["python"].run_semgrep(source)
-            elif language == "java":
-                if shutil.which("spotbugs"):
-                    out += SCANNER_INSTANCES["java"].run_spotbugs(source)
-                if shutil.which("pmd"):
-                    out += SCANNER_INSTANCES["java"].run_pmd(source)
-            elif language == "cpp":
-                if shutil.which("clang"):
-                    out += SCANNER_INSTANCES["cpp"].run_clang_analyzer(source)
-            elif language == "web":
-                if shutil.which("semgrep"):
-                    out += SCANNER_INSTANCES["web"].run_semgrep(source)
+            # Determine which languages are present in the project
+            languages_present = set()
+            for f in self.collect_files(source):
+                lang = detect_language(f.name)
+                if lang:
+                    languages_present.add(lang)
+            
+            # Run tools for each language present
+            for lang in languages_present:
+                try:
+                    if lang == "python":
+                        if shutil.which("bandit"):
+                            out += SCANNER_INSTANCES["python"].run_bandit(source)
+                        if shutil.which("semgrep"):
+                            out += SCANNER_INSTANCES["python"].run_semgrep(source)
+                    elif lang == "java":
+                        if shutil.which("spotbugs"):
+                            out += SCANNER_INSTANCES["java"].run_spotbugs(source)
+                        if shutil.which("pmd"):
+                            out += SCANNER_INSTANCES["java"].run_pmd(source)
+                    elif lang == "cpp":
+                        if shutil.which("clang"):
+                            out += SCANNER_INSTANCES["cpp"].run_clang_analyzer(source)
+                    elif lang == "web":
+                        if shutil.which("semgrep"):
+                            out += SCANNER_INSTANCES["web"].run_semgrep(source)
+                except Exception as e:
+                    # Log but don't break - external tools are best effort
+                    import logging
+                    logging.getLogger(__name__).debug(f"External tool failed for {lang}: {e}")
         except Exception:
             # External tools must never break the core scan.
             pass
