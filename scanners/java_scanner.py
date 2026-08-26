@@ -29,6 +29,14 @@ RULES = [
     (re.compile(r"Math\.random\s*\(\s*\)"), "J-CRYPTO-4", "Math.random() not cryptographically secure", "CWE-330", 5),
     (re.compile(r"System\.getenv\s*\([^)]*\)\s*\+|getenv\s*\([^)]*\)\s*.*print|\.println\s*\([^)]*getenv"), "J-INFO-1", "Environment variable in output (info leak)", "CWE-200", 4),
     (re.compile(r"Class\.forName\s*\([^)]*getParameter|URLClassLoader"), "J-INJECT-1", "Reflection / dynamic class loading from input", "CWE-470", 7),
+    # New rules for additional coverage
+    (re.compile(r"DocumentBuilderFactory|SAXParser|XMLReader|TransformerFactory|SchemaFactory"), "J-XXE-1", "XML parser - verify XXE protection enabled", "CWE-611", 8),
+    (re.compile(r"\.lookup\s*\(\s*[^)]*\$|InitialDirContext\s*\("), "J-LDAP-1", "LDAP lookup with dynamic input - possible injection", "CWE-90", 8),
+    (re.compile(r"URL\s*\([^)]*getParameter|openConnection\s*\(\s*[^)]*request"), "J-SSRF-1", "URL from request parameter - possible SSRF", "CWE-918", 8),
+    (re.compile(r"SecureRandom\s*\(\s*\)"), "J-CRYPTO-5", "SecureRandom without explicit seed", "CWE-330", 4),
+    (re.compile(r"log\.(info|debug|warn|error)\s*\([^)]*\+"), "J-LOG-1", "String concatenation in log statement - possible log injection", "CWE-117", 5),
+    (re.compile(r"ContentSecurityPolicy|X-Frame-Options|X-Content-Type-Options"), "J-SEC-1", "Security header detected - verify correct configuration", "CWE-693", 3),
+    (re.compile(r"csrf|CrossOrigin|@CrossField"), "J-CSRF-1", "CSRF protection detected - verify implementation", "CWE-352", 3),
 ]
 
 # PMD rules that map to security issues
