@@ -1,0 +1,30 @@
+# Official Docker image for CyberCode Inspector's Analysis Engine
+# This image bundles all required scanners to ensure consistent environments.
+
+FROM python:3.11-slim
+
+# Install system dependencies for various scanners
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    wget \
+    build-essential \
+    llvm \
+    clang \
+    default-jdk \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python security tools
+RUN pip install --no-cache-dir \
+    bandit \
+    semgrep \
+    requests \
+    fastapi \
+    uvicorn
+
+# Set working directory
+WORKDIR /app
+
+# The scanner manager in the main app will invoke these via 'docker run'
+# or by executing commands inside the container.
+CMD ["/bin/bash"]

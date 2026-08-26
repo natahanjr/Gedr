@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  cybercode-scanners:
+    build:
+      context: .
+      dockerfile: Dockerfile.scanners
+    image: cybercode-scanners:latest
+    volumes:
+      - ./project_to_scan:/app/scan_target
+    networks:
+      - cybercode-net
+
+networks:
+  cybercode-net:
+    driver: bridge
