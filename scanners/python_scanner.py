@@ -70,6 +70,15 @@ RULES = [
     (re.compile(r"random\.(random|randint|choice|uniform)\s*\("), "S-CRYPTO-3", "Non-cryptographic random for security", "CWE-330", 6),
     (re.compile(r"assert\s+.*\b(is_admin|is_authenticated|is_superuser|is_staff|has_permission|has_role|logged_in|authenticated)\b"), "S-AUTH-1", "assert used for authorization (disabled with -O)", "CWE-287", 8),
     (re.compile(r"exec\s*\(\s*['\"]rm\s+-rf|os\.remove|shutil\.rmtree"), "S-DELETE-1", "Destructive file operation", "CWE-20", 6),
+    # New rules for additional coverage
+    (re.compile(r"requests\.get\s*\([^)]*verify\s*=\s*False"), "S-TLS-1", "TLS verification disabled", "CWE-295", 8),
+    (re.compile(r"urllib\.request\.urlopen\s*\([^)]*https"), "S-TLS-2", "HTTPS without certificate verification", "CWE-295", 5),
+    (re.compile(r"tempfile\.(mktemp|NamedTemporaryFile)\s*\([^)]*delete\s*=\s*False"), "S-TEMP-1", "Temporary file not auto-deleted", "CWE-377", 5),
+    (re.compile(r"os\.chmod\s*\([^)]*0o777|os\.chmod\s*\([^)]*0o7[56]"), "S-PERM-1", "Overly permissive file permissions", "CWE-732", 7),
+    (re.compile(r"\bpdb\.set_trace\s*\(\s*\)|\bbreakpoint\s*\(\s*\)"), "S-DEBUG-1", "Debugger breakpoint in production code", "CWE-489", 6),
+    (re.compile(r"flask\.Flask\s*\(|django\.setup\s*\("), "S-CONFIG-1", "Application entry point - verify debug mode disabled", "CWE-489", 4),
+    (re.compile(r"DEBUG\s*=\s*True"), "S-CONFIG-2", "Debug mode enabled", "CWE-489", 7),
+    (re.compile(r"ALLOWED_HOSTS\s*=\s*\[.*\*.*\]"), "S-CONFIG-3", "Wildcard in ALLOWED_HOSTS", "CWE-942", 8),
 ]
 
 
