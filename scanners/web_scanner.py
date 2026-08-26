@@ -32,6 +32,13 @@ PHP_RULES = [
     # CSRF: form without token
     (re.compile(r"<form.*POST[^>]*>\s*(?!.*csrf|.*token|.*nonce)"), "W-CSRF-2", "Form POST without CSRF token", "CWE-352", 8),
     (re.compile(r"\$(?:password|passwd|secret|api[_-]?key|token|access_key)\w*\s*=\s*['\"][^'\"]{3,}['\"]", re.I), "W-HARDCODE-1", "Hardcoded credential in PHP source", "CWE-798", 8),
+    # New PHP rules
+    (re.compile(r"\bextract\s*\(\s*\$_POST|\bextract\s*\(\s*\$_GET|\bextract\s*\(\s*\$_REQUEST"), "W-PHP-EXTRACT-1", "extract() with user input - variable overwrite risk", "CWE-665", 9),
+    (re.compile(r"\bpreg_replace\s*\(\s*['\"].*/e['\"]"), "W-PHP-PREG-1", "preg_replace with /e modifier - code execution", "CWE-95", 9),
+    (re.compile(r"ini_set\s*\(\s*['\"]display_errors['\"]\s*,\s*['\"]1['\"]"), "W-PHP-CONFIG-1", "Display errors enabled in production", "CWE-209", 6),
+    (re.compile(r"allow_url_include|allow_url_fopen"), "W-PHP-CONFIG-2", "Remote file inclusion enabled", "CWE-98", 8),
+    (re.compile(r"disable_functions"), "W-PHP-CONFIG-3", "disable_functions directive - verify secure config", "CWE-693", 3),
+    (re.compile(r"\$\w+\s*=\s*\$_SERVER\s*\[['\"]HTTP_"), "W-PHP-HEADER-1", "HTTP header used without sanitization", "CWE-20", 6),
 ]
 
 JS_RULES = [
@@ -47,6 +54,15 @@ JS_RULES = [
     (re.compile(r"localStorage\.(setItem|getItem)\s*\([^)]*(token|password|secret|credential)"), "W-STORE-1", "Sensitive data in localStorage", "CWE-312", 7),
     (re.compile(r"http://"), "W-MIXED-1", "Hardcoded HTTP (mixed content) URL", "CWE-319", 4),
     (re.compile(r"Math\.random\s*\(\s*\)\s*[^;]*(password|token|key|secret)"), "W-RANDOM-1", "Math.random used for security token", "CWE-330", 8),
+    # New JS rules
+    (re.compile(r"Object\.assign\s*\(\s*[^,]+,\s*req\.|Object\.assign\s*\([^)]*\{[^}]*\.\."), "W-JS-PROTO-1", "Object.assign with user input - prototype pollution risk", "CWE-1321", 8),
+    (re.compile(r"\.__proto__|Object\.setPrototypeOf"), "W-JS-PROTO-2", "Prototype manipulation detected", "CWE-1321", 7),
+    (re.compile(r"child_process\.exec\s*\(|child_process\.spawn\s*\("), "W-JS-CMDI-1", "Node.js child_process execution", "CWE-78", 8),
+    (re.compile(r"process\.env\.\w+"), "W-JS-ENV-1", "Environment variable access - verify no secrets exposed", "CWE-200", 4),
+    (re.compile(r"fs\.(readFile|writeFile|appendFile)\s*\("), "W-JS-FS-1", "File system operation - verify path validation", "CWE-22", 6),
+    (re.compile(r"express\s*\(\s*\)\s*\.\s*(get|post|put|delete)\s*\([^)]*\$"), "W-JS-ROUTE-1", "Express route with parameter - verify input validation", "CWE-20", 5),
+    (re.compile(r"eval\s*\(\s*Buffer\.from\s*\(|eval\s*\(\s*atob\s*\("), "W-JS-EVAL-OBFS", "eval() with obfuscated input", "CWE-95", 9),
+    (re.compile(r"new\s+RegExp\s*\([^)]*\+"), "W-JS-REGEX-1", "Dynamic RegExp construction - possible ReDoS", "CWE-1333", 6),
 ]
 
 HTML_RULES = [
@@ -75,7 +91,7 @@ class WebScanner:
         rule_sets = []
         if ext in {".php", ".phtml"}:
             rule_sets.append(PHP_RULES)
-        if ext in {".js", ".jsx", ".ts", ".mjs"}:
+        if ext in {".js", ".jsx", ".ts", ".tsx", ".mjs"}:
             rule_sets.append(JS_RULES)
         if ext in {".html", ".htm", ".xhtml"}:
             rule_sets.append(HTML_RULES)
@@ -151,7 +167,7 @@ class WebScanner:
 
 
 def _iter_web_files(path: Path):
-    exts = {".php", ".phtml", ".js", ".jsx", ".ts", ".mjs", ".html", ".htm", ".xhtml", ".css"}
+    exts = {".php", ".phtml", ".js", ".jsx", ".ts", ".tsx", ".mjs", ".html", ".htm", ".xhtml", ".css"}
     for p in path.rglob("*"):
         if p.is_file() and p.suffix.lower() in exts:
             yield p
