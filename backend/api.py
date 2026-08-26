@@ -35,7 +35,7 @@ from backend.upload_validator import validate_upload, UploadValidationError
 from database.sqlite_manager import PostgresManager
 from reports.pdf_generator import SecurityReportGenerator
 from reports.ai_report_generator import AIReportGenerator
-from backend.auth import AuthHandler, get_current_user
+from backend.auth import AuthHandler, get_current_user, optional_get_current_user
 from backend.autofix_engine import AutoFixEngine
 from backend.rate_limit import check as rate_check
 
@@ -163,11 +163,12 @@ def list_connectors():
 
 
 @app.post("/api/scan/external")
-def scan_external(connector: str = Form(...), target: str = Form(...)):
+async def scan_external(request: Request, connector: str = Form(...), target: str = Form(...), current_user: dict = Depends(optional_get_current_user)):
     """Run an external scanner (openvas/nmap/nessus/custom) against a target.
 
     Returns normalized findings in the standard CCI format.
     """
+    _enforce_rate(5, request)  # 5 external scans per minute
     if not target or not target.strip():
         raise HTTPException(400, "Target is required")
 
@@ -198,7 +199,7 @@ def scan_external(connector: str = Form(...), target: str = Form(...)):
 
 
 @app.post("/api/scan/upload")
-async def scan_upload(request: Request, file: UploadFile = File(...), use_ai: bool = Form(False)):
+async def scan_upload(request: Request, file: UploadFile = File(...), use_ai: bool = Form(False), current_user: dict = Depends(optional_get_current_user)):
     """Scan a single uploaded source file.
 
     Security: Validates filename, file size, MIME type, and magic bytes
@@ -233,13 +234,14 @@ async def scan_upload(request: Request, file: UploadFile = File(...), use_ai: bo
 
 
 @app.post("/api/scan/project")
-def scan_project(path: str = Form(...), use_ai: bool = Form(False)):
+async def scan_project(request: Request, path: str = Form(...), use_ai: bool = Form(False), current_user: dict = Depends(optional_get_current_user)):
     """Scan a directory on the local filesystem.
 
     Security: Validates path to prevent traversal attacks, symlink following,
     and scanning system-critical directories. Absolute paths are only
     allowed when they fall under CCI_ALLOWED_SCAN_ROOTS.
     """
+    _enforce_rate(5, request)  # 5 project scans per minute
     try:
         allowed_roots = os.getenv("CCI_ALLOWED_SCAN_ROOTS", "")
         p = validate_scan_path(path, allow_absolute=True, allowed_roots=allowed_roots)
@@ -304,8 +306,9 @@ def get_scan(scan_id: str):
 
 
 @app.post("/api/scans/{scan_id}/ai")
-def run_ai_analysis(scan_id: str):
+async def run_ai_analysis(request: Request, scan_id: str, current_user: dict = Depends(optional_get_current_user)):
     """Run AI analysis over all findings of a scan via microservice."""
+    _enforce_rate(5, request)  # 5 AI analyses per minute
     scan = db.get_scan(scan_id)
     if not scan:
         raise HTTPException(404, "Scan not found")
@@ -355,8 +358,9 @@ def run_ai_analysis(scan_id: str):
 
 
 @app.post("/api/scans/{scan_id}/summary")
-def scan_summary(scan_id: str):
+async def scan_summary(request: Request, scan_id: str, current_user: dict = Depends(optional_get_current_user)):
     """Generate an AI executive summary for a scan (microservice or direct agent)."""
+    _enforce_rate(5, request)  # 5 summaries per minute
     scan = db.get_scan(scan_id)
     if not scan:
         raise HTTPException(404, "Scan not found")
@@ -452,7 +456,8 @@ async def run_autofix(scan_id: str, dry_run: bool = Form(False), current_user: d
         raise HTTPException(500, f"Auto-fix failed: {result}")
 
 @app.get("/api/scans/{scan_id}/report")
-def download_report(scan_id: str):
+async def download_report(request: Request, scan_id: str, current_user: dict = Depends(optional_get_current_user)):
+    _enforce_rate(10, request)  # 10 report downloads per minute
     scan = db.get_scan(scan_id)
     if not scan:
         raise HTTPException(404, "Scan not found")
@@ -482,8 +487,9 @@ def download_report(scan_id: str):
 
 
 @app.get("/api/scans/{scan_id}/report/ai")
-def download_ai_report(scan_id: str):
+async def download_ai_report(request: Request, scan_id: str, current_user: dict = Depends(optional_get_current_user)):
     """Generate a premium AI-powered PDF report with Apple-level design quality."""
+    _enforce_rate(10, request)  # 10 AI report downloads per minute
     scan = db.get_scan(scan_id)
     if not scan:
         raise HTTPException(404, "Scan not found")
