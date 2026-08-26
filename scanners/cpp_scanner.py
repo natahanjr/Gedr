@@ -33,6 +33,17 @@ RULES = [
     (re.compile(r"strcmp\s*\(\s*[^,]+,\s*[^)]*password|strcmp\s*\(\s*[^,]+,\s*[^)]*passwd", re.I), "C-AUTH-1", "Password comparison with strcmp (timing attack)", "CWE-287", 6),
     (re.compile(r"\balloc\s*\([^)]*\*\s*\w+\s*\+|alloc\s*\([^)]*\+\s*\w+"), "C-OFF-1", "Integer overflow in allocation size", "CWE-190", 7),
     (re.compile(r"\batoi\s*\([^)]*argv"), "C-INPUT-2", "argv parsed without validation", "CWE-20", 5),
+    # New rules for additional coverage
+    (re.compile(r"\bsnprintf\s*\([^,]+,\s*sizeof"), "C-OVERFLOW-7", "snprintf with sizeof - verify buffer size correct", "CWE-120", 5),
+    (re.compile(r"\bprintf\s*\([^)]*%s[^)]*\+"), "C-FMTSTR-1", "printf format string with concatenation", "CWE-134", 7),
+    (re.compile(r"\bfprintf\s*\(\s*stderr"), "C-FMTSTR-2", "fprintf to stderr - verify format string safe", "CWE-134", 4),
+    (re.compile(r"\bmalloc\s*\(\s*0\s*\)|\bcalloc\s*\(\s*0\s*,"), "C-MEM-5", "Zero-size allocation", "CWE-131", 5),
+    (re.compile(r"\brealloc\s*\([^,]+,\s*0\s*\)"), "C-MEM-6", "Zero-size realloc (may free memory)", "CWE-131", 5),
+    (re.compile(r"\bmemmove\s*\("), "C-MEM-7", "memmove used - verify source/dest don't overlap incorrectly", "CWE-119", 4),
+    (re.compile(r"\bsignal\s*\(|\bsigaction\s*\("), "C-SIGNAL-1", "Signal handler registered - verify async-safety", "CWE-364", 5),
+    (re.compile(r"\bsetjmp\s*\(|\blongjmp\s*\("), "C-JMP-1", "setjmp/longjmp - possible non-local goto", "CWE-773", 6),
+    (re.compile(r"\bpthread_create\s*\("), "C-THREAD-1", "Thread created - verify synchronization", "CWE-362", 4),
+    (re.compile(r"\bfork\s*\("), "C-FORK-1", "fork() called - verify child process handling", "CWE-364", 4),
 ]
 
 # Clang analyzer findings that indicate memory issues
