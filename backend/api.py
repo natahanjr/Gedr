@@ -14,10 +14,13 @@ Endpoints:
 Run:  uvicorn backend.api:app --host 0.0.0.0 --port 8000
 """
 import os
+import csv
+import json
 import shutil
 import tempfile
 import uuid
 from pathlib import Path
+from io import StringIO
 
 import requests
 
@@ -525,6 +528,75 @@ async def download_ai_report(request: Request, scan_id: str, current_user: dict 
         out,
         media_type="application/pdf",
         filename=out.name,
+        background=BackgroundTask(os.unlink, tmp_path),
+    )
+
+
+@app.get("/api/scans/{scan_id}/export/csv")
+async def export_findings_csv(request: Request, scan_id: str, current_user: dict = Depends(optional_get_current_user)):
+    """Export findings as CSV for spreadsheet analysis."""
+    _enforce_rate(10, request)
+    scan = db.get_scan(scan_id)
+    if not scan:
+        raise HTTPException(404, "Scan not found")
+    
+    findings = db.get_findings(scan_id)
+    
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["id", "severity", "title", "cwe", "file", "line", "code", "scanner", "description"])
+    
+    for f in findings:
+        writer.writerow([
+            f.get("id", ""),
+            f.get("severity", ""),
+            f.get("title", ""),
+            f.get("cwe", ""),
+            f.get("file", ""),
+            f.get("line", ""),
+            f.get("code", ""),
+            f.get("scanner", ""),
+            f.get("description", ""),
+        ])
+    
+    fd, tmp_path = tempfile.mkstemp(prefix="cci_export_", suffix=".csv")
+    os.close(fd)
+    Path(tmp_path).write_text(output.getvalue(), encoding="utf-8")
+    
+    return FileResponse(
+        tmp_path,
+        media_type="text/csv",
+        filename=f"findings_{scan_id}.csv",
+        background=BackgroundTask(os.unlink, tmp_path),
+    )
+
+
+@app.get("/api/scans/{scan_id}/export/json")
+async def export_findings_json(request: Request, scan_id: str, current_user: dict = Depends(optional_get_current_user)):
+    """Export findings as JSON for programmatic consumption."""
+    _enforce_rate(10, request)
+    scan = db.get_scan(scan_id)
+    if not scan:
+        raise HTTPException(404, "Scan not found")
+    
+    findings = db.get_findings(scan_id)
+    
+    export_data = {
+        "scan_id": scan_id,
+        "project_id": scan.get("project_id"),
+        "security_score": scan.get("security_score"),
+        "findings_count": len(findings),
+        "findings": findings,
+    }
+    
+    fd, tmp_path = tempfile.mkstemp(prefix="cci_export_", suffix=".json")
+    os.close(fd)
+    Path(tmp_path).write_text(json.dumps(export_data, indent=2), encoding="utf-8")
+    
+    return FileResponse(
+        tmp_path,
+        media_type="application/json",
+        filename=f"findings_{scan_id}.json",
         background=BackgroundTask(os.unlink, tmp_path),
     )
 
