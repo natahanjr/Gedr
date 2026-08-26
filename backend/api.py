@@ -14,10 +14,13 @@ Endpoints:
 Run:  uvicorn backend.api:app --host 0.0.0.0 --port 8000
 """
 import os
+import csv
+import json
 import shutil
 import tempfile
 import uuid
 from pathlib import Path
+from io import StringIO
 
 import requests
 
@@ -268,23 +271,36 @@ def _scan_response(result: dict) -> dict:
 
 # ----------------------------------------------------------------------
 @app.get("/api/projects")
-def list_projects():
-    projects = db.list_projects()
+def list_projects(request: Request, page: int = 1, limit: int = 50):
+    projects, total = db.list_projects(page=page, limit=limit)
     out = []
     for pr in projects:
-        scans = db.list_scans(pr["id"])
+        scans, _ = db.list_scans(pr["id"], page=1, limit=1)
         latest = scans[0] if scans else None
         out.append({**pr, "last_score": latest.get("security_score") if latest else None,
                     "last_scan": latest.get("started_at") if latest else None})
-    return out
+    return {
+        "items": out,
+        "page": page,
+        "limit": limit,
+        "total": total,
+        "pages": (total + limit - 1) // limit,
+    }
 
 
 @app.get("/api/projects/{project_id}")
-def get_project(project_id: str):
+def get_project(project_id: str, page: int = 1, limit: int = 50):
     project = db.get_project(project_id)
     if not project:
         raise HTTPException(404, "Project not found")
-    return {**project, "scans": db.list_scans(project_id)}
+    scans, total = db.list_scans(project_id, page=page, limit=limit)
+    return {
+        **project,
+        "scans": scans,
+        "scans_page": page,
+        "scans_total": total,
+        "scans_pages": (total + limit - 1) // limit,
+    }
 
 
 # ----------------------------------------------------------------------
@@ -512,6 +528,75 @@ async def download_ai_report(request: Request, scan_id: str, current_user: dict 
         out,
         media_type="application/pdf",
         filename=out.name,
+        background=BackgroundTask(os.unlink, tmp_path),
+    )
+
+
+@app.get("/api/scans/{scan_id}/export/csv")
+async def export_findings_csv(request: Request, scan_id: str, current_user: dict = Depends(optional_get_current_user)):
+    """Export findings as CSV for spreadsheet analysis."""
+    _enforce_rate(10, request)
+    scan = db.get_scan(scan_id)
+    if not scan:
+        raise HTTPException(404, "Scan not found")
+    
+    findings = db.get_findings(scan_id)
+    
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["id", "severity", "title", "cwe", "file", "line", "code", "scanner", "description"])
+    
+    for f in findings:
+        writer.writerow([
+            f.get("id", ""),
+            f.get("severity", ""),
+            f.get("title", ""),
+            f.get("cwe", ""),
+            f.get("file", ""),
+            f.get("line", ""),
+            f.get("code", ""),
+            f.get("scanner", ""),
+            f.get("description", ""),
+        ])
+    
+    fd, tmp_path = tempfile.mkstemp(prefix="cci_export_", suffix=".csv")
+    os.close(fd)
+    Path(tmp_path).write_text(output.getvalue(), encoding="utf-8")
+    
+    return FileResponse(
+        tmp_path,
+        media_type="text/csv",
+        filename=f"findings_{scan_id}.csv",
+        background=BackgroundTask(os.unlink, tmp_path),
+    )
+
+
+@app.get("/api/scans/{scan_id}/export/json")
+async def export_findings_json(request: Request, scan_id: str, current_user: dict = Depends(optional_get_current_user)):
+    """Export findings as JSON for programmatic consumption."""
+    _enforce_rate(10, request)
+    scan = db.get_scan(scan_id)
+    if not scan:
+        raise HTTPException(404, "Scan not found")
+    
+    findings = db.get_findings(scan_id)
+    
+    export_data = {
+        "scan_id": scan_id,
+        "project_id": scan.get("project_id"),
+        "security_score": scan.get("security_score"),
+        "findings_count": len(findings),
+        "findings": findings,
+    }
+    
+    fd, tmp_path = tempfile.mkstemp(prefix="cci_export_", suffix=".json")
+    os.close(fd)
+    Path(tmp_path).write_text(json.dumps(export_data, indent=2), encoding="utf-8")
+    
+    return FileResponse(
+        tmp_path,
+        media_type="application/json",
+        filename=f"findings_{scan_id}.json",
         background=BackgroundTask(os.unlink, tmp_path),
     )
 

@@ -11,6 +11,7 @@ Provides:
 import logging
 import sys
 import signal
+import time
 import functools
 import traceback
 from pathlib import Path
@@ -60,7 +61,7 @@ class ScannerError(Exception):
     pass
 
 
-class TimeoutError(ScannerError):
+class ScanTimeoutError(ScannerError):
     """Raised when a scan operation times out."""
     pass
 
@@ -73,9 +74,14 @@ class MalformedCodeError(ScannerError):
     pass
 
 
+class UnexpectedError(ScannerError):
+    """Raised for unhandled errors that need investigation."""
+    pass
+
+
 def timeout_handler(signum, frame):
     """Signal handler for timeout."""
-    raise TimeoutError("Operation timed out")
+    raise ScanTimeoutError("Operation timed out")
 
 
 @contextmanager
@@ -100,7 +106,7 @@ def timeout_context(seconds: int, operation_name: str = "operation"):
     
     try:
         yield
-    except TimeoutError:
+    except ScanTimeoutError:
         logger.error(f"{operation_name} exceeded {seconds}s timeout")
         raise
     finally:
@@ -150,7 +156,7 @@ def with_error_handling(
                     # Fallback for systems without signal support
                     return func(*args, **kwargs)
                     
-            except TimeoutError as e:
+            except ScanTimeoutError as e:
                 logger.error(f"{op_name} timed out after {timeout_seconds}s")
                 if on_error:
                     return on_error(e)

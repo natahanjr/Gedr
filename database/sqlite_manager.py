@@ -165,14 +165,17 @@ class SQLiteManager:
             finally:
                 conn.close()
 
-    def list_projects(self):
+    def list_projects(self, page: int = 1, limit: int = 50) -> tuple[list[dict], int]:
+        offset = (page - 1) * limit
         with _lock:
             conn = self._connect()
             try:
+                total = conn.execute("SELECT COUNT(*) FROM projects").fetchone()[0]
                 rows = conn.execute(
-                    "SELECT * FROM projects ORDER BY created_at DESC"
+                    "SELECT * FROM projects ORDER BY created_at DESC LIMIT ? OFFSET ?",
+                    (limit, offset),
                 ).fetchall()
-                return [dict(r) for r in rows]
+                return [dict(r) for r in rows], total
             finally:
                 conn.close()
 
@@ -213,20 +216,26 @@ class SQLiteManager:
             finally:
                 conn.close()
 
-    def list_scans(self, project_id: str | None = None):
+    def list_scans(self, project_id: str | None = None, page: int = 1, limit: int = 50) -> tuple[list[dict], int]:
+        offset = (page - 1) * limit
         with _lock:
             conn = self._connect()
             try:
                 if project_id:
+                    total = conn.execute(
+                        "SELECT COUNT(*) FROM scans WHERE project_id=?", (project_id,)
+                    ).fetchone()[0]
                     rows = conn.execute(
-                        "SELECT * FROM scans WHERE project_id=? ORDER BY started_at DESC",
-                        (project_id,),
+                        "SELECT * FROM scans WHERE project_id=? ORDER BY started_at DESC LIMIT ? OFFSET ?",
+                        (project_id, limit, offset),
                     ).fetchall()
                 else:
+                    total = conn.execute("SELECT COUNT(*) FROM scans").fetchone()[0]
                     rows = conn.execute(
-                        "SELECT * FROM scans ORDER BY started_at DESC"
+                        "SELECT * FROM scans ORDER BY started_at DESC LIMIT ? OFFSET ?",
+                        (limit, offset),
                     ).fetchall()
-                return [dict(r) for r in rows]
+                return [dict(r) for r in rows], total
             finally:
                 conn.close()
 
