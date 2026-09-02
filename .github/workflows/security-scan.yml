@@ -1,4 +1,4 @@
-name: Gədr Scan
+name: Gedr Scan
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  security-scan:
+  tests:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -22,10 +22,30 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          pip install pytest
+          pip install pytest bandit
 
       - name: Run Security Smoke Test
         run: python tests/smoke_test.py
 
       - name: Run Full Test Suite
         run: pytest -q
+
+  self-sast:
+    # Eat our own dog food: run the same kind of scan Gedr runs on its
+    # own codebase. Bandit here catches the same Python security issues
+    # Gedr would catch in user code.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Bandit
+        run: pip install bandit
+      - name: Bandit on Gedr
+        # Non-blocking: warnings only. Replace with `&& exit 1` if you
+        # want CI to fail on any high-severity finding.
+        run: |
+          bandit -r backend/ ai/ scanners/ scanner_connectors/ \
+                 reports/ database/ -ll --confidence-level high \
+                 -f txt || echo "[bandit] warnings printed above"
