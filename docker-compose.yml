@@ -1,11 +1,16 @@
 version: '3.8'
 
 services:
-  # Database Service
+  # Database Service (optional upgrade target)
+  # NOTE: the current backend uses SQLite. The Postgres container is
+  # reserved for a future database-driver upgrade (tracked in
+  # STRENGTHS_WEAKNESSES.md). It is started so credentials can be
+  # provisioned ahead of time; nothing in the app currently connects.
   db:
     image: postgres:15-alpine
     container_name: gedr-db
     restart: always
+    profiles: ["postgres"]  # opt-in: docker-compose --profile postgres up -d
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-gedr}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
@@ -32,8 +37,8 @@ services:
       CCI_AI_BASE_URL: ${CCI_AI_BASE_URL:-}
       CCI_AI_MODEL: ${CCI_AI_MODEL:-}
       CCI_ALLOWED_SCAN_ROOTS: ${CCI_ALLOWED_SCAN_ROOTS:-}
-    depends_on:
-      - db
+    # db is on profile "postgres" - only required when running with
+    # --profile postgres. The default backend uses SQLite.
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
       interval: 30s
@@ -41,7 +46,9 @@ services:
       retries: 3
       start_period: 10s
     volumes:
+      # Persist the SQLite database between container restarts.
       - gedr_data:/app/data
+      - gedr_db:/app/cybercode.db
 
   # AI Service
   ai:
@@ -95,3 +102,4 @@ volumes:
   postgres_data:
   openvas_data:
   gedr_data:
+  gedr_db:

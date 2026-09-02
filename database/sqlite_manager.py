@@ -4,9 +4,13 @@ SQLite persistence layer for Gədr.
 Stores projects, scans, findings, and AI recommendations.
 Thread-safe: one connection per thread via a lock-protected helper.
 
-This file was previously named postgres_manager.py but always used
-SQLite. The class is SQLiteManager; a PostgresManager alias is kept
-for backward compatibility only.
+The class is SQLiteManager; a PostgresManager alias is kept for
+backward compatibility only. The backend always uses SQLite —
+docker-compose ships Postgres as an OPTIONAL upgrade target
+(controlled by DATABASE_URL). When DATABASE_URL points at a
+Postgres URL the application currently still uses the local SQLite
+file (a real Postgres driver is out of scope for this build). See
+README "Database" section.
 """
 import json
 import sqlite3
@@ -69,6 +73,7 @@ class SQLiteManager:
                         ai_enabled INTEGER DEFAULT 0,
                         status TEXT DEFAULT 'running',
                         summary TEXT,
+                        ai_summary TEXT,
                         FOREIGN KEY (project_id) REFERENCES projects(id)
                     );
 
@@ -110,6 +115,15 @@ class SQLiteManager:
                     CREATE INDEX IF NOT EXISTS idx_ai_finding ON ai_recommendations(finding_id);
                     """
                 )
+                # Idempotent column additions for existing databases.
+                for stmt in (
+                    "ALTER TABLE scans ADD COLUMN ai_summary TEXT",
+                ):
+                    try:
+                        conn.execute(stmt)
+                    except Exception:
+                        # Column already exists or table is fresh — both fine.
+                        pass
                 conn.commit()
             finally:
                 conn.close()
