@@ -93,7 +93,9 @@ def validate_scan_path(user_path: str, allow_absolute: bool = False,
         if resolved_str == sp or resolved_str.startswith(sp + "\\") or resolved_str.startswith(sp + "/"):
             raise PathSecurityError(f"Cannot scan system-critical directory: {sys_path}")
 
-    # Prevent path traversal: reject .. segments that escape the working dir
+    # Prevent path traversal: reject paths whose parts include '..'.
+    # Checking parts (not substring) avoids false rejection of legitimate
+    # names like "file..txt".
     if ".." in requested.parts:
         raise PathSecurityError(
             "Path traversal sequences (..) are not allowed in scan paths."
