@@ -13,93 +13,95 @@ from . import resolve_cwe
 
 def _rules_go() -> list[tuple]:
     return [
-        (re.compile(r"exec\.Command\s*\(\s*['\"]?(?:/bin/)?(?:ba)?sh['\"]"), "G-CMDI-1", "Shell invocation via exec.Command allows command injection", "CWE-78", 8),
-        (re.compile(r"os/exec\.[A-Za-z]*Command\s*\([^)]*\.\.\."), "G-CMDI-2", "exec.Command built from variable arguments", "CWE-78", 7),
-        (re.compile(r"(?i)(password|passwd|secret|apikey|api_key|token)\s*[:=]\s*[\"'][^\"']{6,}[\"']"), "G-HARDCODE-1", "Hardcoded credential in Go source", "CWE-798", 8),
-        (re.compile(r"crypto/md5|crypto/sha1\b"), "G-CRYPTO-1", "Weak hash algorithm (MD5/SHA-1) imported", "CWE-327", 6),
-        (re.compile(r"(?i)http://(?!localhost|127\.0\.0\.1)"), "G-CLEAR-1", "Cleartext HTTP URL in Go code", "CWE-319", 4),
-        (re.compile(r"tls\.Config\s*\{[^}]*InsecureSkipVerify\s*:\s*true"), "G-TLS-1", "TLS certificate verification disabled", "CWE-295", 8),
-        (re.compile(r"fmt\.Sprintf\s*\(\s*['\"]SELECT|Sprintf\s*\(\s*[\"']INSERT|Sprintf\s*\(\s*[\"']UPDATE"), "G-SQLI-1", "SQL query built with fmt.Sprintf", "CWE-89", 8),
-        (re.compile(r"template\.HTML\s*\("), "G-XSS-1", "template.HTML bypasses auto-escaping", "CWE-79", 7),
+        (re.compile(r"\bexec\.Command\s*\(\s*['\"]?(?:/bin/)?(?:ba)?sh['\"]"), "G-CMDI-1", "Shell invocation via exec.Command allows command injection", "CWE-78", 8),
+        (re.compile(r"\bos/exec\.[A-Za-z]*Command\s*\([^)]*\.\.\."), "G-CMDI-2", "exec.Command built from variable arguments", "CWE-78", 7),
+        # Word boundaries on identifier + value so 'json' / 'application/json' no
+        # longer match 'api_key'/'token' substrings inside URL/headers.
+        (re.compile(r"(?i)\b(?:password|passwd|secret|apikey|api[_-]key|token)\b\s*[:=]\s*[\"'][^\"']{6,}[\"']"), "G-HARDCODE-1", "Hardcoded credential in Go source", "CWE-798", 8),
+        (re.compile(r"\bcrypto/(?:md5|sha1)\b"), "G-CRYPTO-1", "Weak hash algorithm (MD5/SHA-1) imported", "CWE-327", 6),
+        (re.compile(r"(?i)\bhttp://(?!localhost|127\.0\.0\.1)"), "G-CLEAR-1", "Cleartext HTTP URL in Go code", "CWE-319", 4),
+        (re.compile(r"\btls\.Config\s*\{[^}]*InsecureSkipVerify\s*:\s*true"), "G-TLS-1", "TLS certificate verification disabled", "CWE-295", 8),
+        (re.compile(r"\bfmt\.Sprintf\s*\(\s*['\"](?:SELECT|INSERT|UPDATE)"), "G-SQLI-1", "SQL query built with fmt.Sprintf", "CWE-89", 8),
+        (re.compile(r"\btemplate\.HTML\s*\("), "G-XSS-1", "template.HTML bypasses auto-escaping", "CWE-79", 7),
     ]
 
 
 def _rules_ruby() -> list[tuple]:
     return [
-        (re.compile(r"\beval\s*\(|instance_eval|class_eval"), "R-CMDI-1", "eval() usage enables code injection", "CWE-95", 9),
-        (re.compile(r"`[^`]*#\{|\bsystem\s*\(|%x\(|\bexec\s*\(|IO\.popen"), "R-CMDI-2", "Shell command with interpolated input", "CWE-78", 9),
-        (re.compile(r"(?i)(password|secret|api_key|token)\s*[:=]\s*['\"][^'\"]{6,}['\"]"), "R-HARDCODE-1", "Hardcoded credential in Ruby source", "CWE-798", 8),
-        (re.compile(r"ActiveRecord::Base\.connection\.execute|find_by_sql\s*\(\s*[\"'].*#\{"), "R-SQLI-1", "Raw SQL with interpolation", "CWE-89", 9),
-        (re.compile(r"render\s+text\s*=>|render\s+:text\s*=>"), "R-XSS-1", "render :text may output unsanitized data", "CWE-79", 6),
-        (re.compile(r"verify_mode\s*=\s*OpenSSL::SSL::VERIFY_NONE"), "R-TLS-1", "SSL certificate verification disabled", "CWE-295", 8),
-        (re.compile(r"Digest::MD5|Digest::SHA1"), "R-CRYPTO-1", "Weak hash (MD5/SHA-1)", "CWE-327", 6),
-        (re.compile(r"YAML\.load\s*\((?!.*safe)"), "R-DESER-1", "Unsafe YAML.load deserialization", "CWE-502", 8),
+        (re.compile(r"\beval\s*\(|instance_eval\b|class_eval\b"), "R-CMDI-1", "eval() usage enables code injection", "CWE-95", 9),
+        (re.compile(r"`[^`]*#\{|\bsystem\s*\(|%x\(|\bexec\s*\(|IO\.popen\b"), "R-CMDI-2", "Shell command with interpolated input", "CWE-78", 9),
+        (re.compile(r"(?i)\b(?:password|secret|api[_-]key|token)\b\s*[:=]\s*['\"][^'\"]{6,}['\"]"), "R-HARDCODE-1", "Hardcoded credential in Ruby source", "CWE-798", 8),
+        (re.compile(r"\bActiveRecord::Base\.connection\.execute\b|\bfind_by_sql\s*\("), "R-SQLI-1", "Raw SQL with interpolation", "CWE-89", 9),
+        (re.compile(r"\brender\s+text\s*=>|\brender\s+:text\s*=>"), "R-XSS-1", "render :text may output unsanitized data", "CWE-79", 6),
+        (re.compile(r"\bverify_mode\s*=\s*OpenSSL::SSL::VERIFY_NONE\b"), "R-TLS-1", "SSL certificate verification disabled", "CWE-295", 8),
+        (re.compile(r"\bDigest::(?:MD5|SHA1)\b"), "R-CRYPTO-1", "Weak hash (MD5/SHA-1)", "CWE-327", 6),
+        (re.compile(r"\bYAML\.load\s*\((?!.*safe)"), "R-DESER-1", "Unsafe YAML.load deserialization", "CWE-502", 8),
     ]
 
 
 def _rules_rust() -> list[tuple]:
     return [
         (re.compile(r"\bunsafe\s*\{"), "RS-UNSAFE-1", "unsafe block disables memory safety guarantees", "CWE-120", 6),
-        (re.compile(r"std::process::Command::new\s*\(\s*[\"']?(?:sh|bash|cmd)[\"']"), "RS-CMDI-1", "Spawning a shell via Command::new", "CWE-78", 8),
-        (re.compile(r"(?i)(password|secret|api_key|token)\s*[:=]\s*[\"'][^\"']{6,}[\"']"), "RS-HARDCODE-1", "Hardcoded credential in Rust source", "CWE-798", 8),
-        (re.compile(r"unwrap\(\)\s*;?\s*$"), "RS-ERR-1", "unwrap() can panic on untrusted input (DoS)", "CWE-20", 3),
-        (re.compile(r"md5::|sha1::"), "RS-CRYPTO-1", "Weak hash crate (md5/sha1)", "CWE-327", 6),
+        (re.compile(r"\bstd::process::Command::new\s*\(\s*[\"']?(?:sh|bash|cmd)[\"']"), "RS-CMDI-1", "Spawning a shell via Command::new", "CWE-78", 8),
+        (re.compile(r"(?i)\b(?:password|secret|api[_-]key|token)\b\s*[:=]\s*[\"'][^\"']{6,}[\"']"), "RS-HARDCODE-1", "Hardcoded credential in Rust source", "CWE-798", 8),
+        (re.compile(r"\bunwrap\s*\(\s*\)\s*;?\s*$"), "RS-ERR-1", "unwrap() can panic on untrusted input (DoS)", "CWE-20", 3),
+        (re.compile(r"\b(?:md5|sha1)::"), "RS-CRYPTO-1", "Weak hash crate (md5/sha1)", "CWE-327", 6),
     ]
 
 
 def _rules_csharp() -> list[tuple]:
     return [
-        (re.compile(r"Process\.Start\s*\([^)]*(?:cmd|powershell)|UseShellExecute\s*=\s*true"), "C-CMDI-1", "Process.Start via shell allows command injection", "CWE-78", 8),
-        (re.compile(r"(?:new\s+)?(?:Sql(?:Client\.)?)?Sql(?:Client\.)?Command(?:Builder)?\s*\([^)]*\+\s*\w+|(?:new\s+)?SqlCommand\s*\(.*\+\s*\w+"), "C-SQLI-1", "SqlCommand built with string concatenation", "CWE-89", 9),
-        (re.compile(r"(?i)(?:string\s+)?(?:password|passwd|pwd|secret|apikey|api_key|access_?key|token)\w*\s*=\s*\"[^\"]{6,}\""), "C-HARDCODE-1", "Hardcoded credential in C# source", "CWE-798", 8),
-        (re.compile(r"MD5\.Create|SHA1\.Create|new\s+MD5CryptoServiceProvider"), "C-CRYPTO-1", "Weak hash algorithm (MD5/SHA-1)", "CWE-327", 6),
-        (re.compile(r"Response\.Write\s*\(\s*Request[.\[]|<%=\s*Request\[", re.I), "C-XSS-1", "Reflected request value written to response", "CWE-79", 9),
-        (re.compile(r"Dns\.GetHostAddresses|WebRequest\.Create\s*\(\s*\w+\s*\)"), "C-SSRF-1", "Possible SSRF: URL taken from variable", "CWE-918", 6),
-        (re.compile(r"Random\s+\w+\s*=\s*new\s+Random\(\s*\)"), "C-RANDOM-1", "System.Random is not cryptographically secure", "CWE-330", 6),
-        (re.compile(r"ValidateRequest\s*=\s*false|validateIntegratedModeConfiguration"), "C-VALID-1", "ASP.NET request validation disabled", "CWE-20", 6),
+        (re.compile(r"\bProcess\.Start\s*\([^)]*(?:cmd|powershell)|\bUseShellExecute\s*=\s*true"), "C-CMDI-1", "Process.Start via shell allows command injection", "CWE-78", 8),
+        (re.compile(r"\b(?:new\s+)?(?:Sql(?:Client\.)?)?Sql(?:Client\.)?Command(?:Builder)?\s*\([^)]*\+\s*\w+|\b(?:new\s+)?SqlCommand\s*\([^)]*\+\s*\w+"), "C-SQLI-1", "SqlCommand built with string concatenation", "CWE-89", 9),
+        (re.compile(r"(?i)\b(?:string\s+)?(?:password|passwd|pwd|secret|apikey|api[_-]key|access[_-]?key|token)\w*\s*=\s*\"[^\"]{6,}\""), "C-HARDCODE-1", "Hardcoded credential in C# source", "CWE-798", 8),
+        (re.compile(r"\b(?:MD5|SHA1)\.Create\b|\bnew\s+MD5CryptoServiceProvider\b"), "C-CRYPTO-1", "Weak hash algorithm (MD5/SHA-1)", "CWE-327", 6),
+        (re.compile(r"\bResponse\.Write\s*\(\s*Request[.\[]|<%=\s*Request\[", re.I), "C-XSS-1", "Reflected request value written to response", "CWE-79", 9),
+        (re.compile(r"\bDns\.GetHostAddresses\b|\bWebRequest\.Create\s*\(\s*\w+\s*\)"), "C-SSRF-1", "Possible SSRF: URL taken from variable", "CWE-918", 6),
+        (re.compile(r"\bRandom\s+\w+\s*=\s*new\s+Random\s*\(\s*\)"), "C-RANDOM-1", "System.Random is not cryptographically secure", "CWE-330", 6),
+        (re.compile(r"\bValidateRequest\s*=\s*false\b|\bvalidateIntegratedModeConfiguration\b"), "C-VALID-1", "ASP.NET request validation disabled", "CWE-20", 6),
     ]
 
 
 def _rules_kotlin() -> list[tuple]:
     return [
-        (re.compile(r"Runtime\.getRuntime\(\)\.exec\s*\("), "K-CMDI-1", "Runtime.exec with dynamic command", "CWE-78", 8),
-        (re.compile(r"(?i)(password|secret|api_key|apikey|token)\s*=\s*\"[^\"]{6,}\""), "K-HARDCODE-1", "Hardcoded credential in Kotlin source", "CWE-798", 8),
-        (re.compile(r"rawQuery\s*\(|execSQL\s*\(\s*[\"'].*\$"), "K-SQLI-1", "SQLite raw query with interpolated value", "CWE-89", 8),
-        (re.compile(r"allowBackup\s*=\s*true|exported\s*=\s*true", ), "K-ANDROID-1", "Android component exported/backup enabled — review exposure", "CWE-926", 4),
-        (re.compile(r"MessageDigest\.getInstance\s*\(\s*\"(?:MD5|SHA-?1)\""), "K-CRYPTO-1", "Weak hash algorithm (MD5/SHA-1)", "CWE-327", 6),
-        (re.compile(r"WebView[a-zA-Z]*\.setJavaScriptEnabled\s*\(\s*true"), "K-WEBVIEW-1", "JavaScript enabled in WebView", "CWE-79", 6),
+        (re.compile(r"\bRuntime\.getRuntime\(\)\.exec\s*\("), "K-CMDI-1", "Runtime.exec with dynamic command", "CWE-78", 8),
+        (re.compile(r"(?i)\b(?:password|secret|api[_-]key|apikey|token)\b\s*=\s*\"[^\"]{6,}\""), "K-HARDCODE-1", "Hardcoded credential in Kotlin source", "CWE-798", 8),
+        (re.compile(r"\brawQuery\s*\(|\bexecSQL\s*\([^)]*\$"), "K-SQLI-1", "SQLite raw query with interpolated value", "CWE-89", 8),
+        (re.compile(r"\ballowBackup\s*=\s*true\b|\bexported\s*=\s*true\b"), "K-ANDROID-1", "Android component exported/backup enabled - review exposure", "CWE-926", 4),
+        (re.compile(r"\bMessageDigest\.getInstance\s*\(\s*\"(?:MD5|SHA-?1)\""), "K-CRYPTO-1", "Weak hash algorithm (MD5/SHA-1)", "CWE-327", 6),
+        (re.compile(r"\bWebView[a-zA-Z]*\.setJavaScriptEnabled\s*\(\s*true"), "K-WEBVIEW-1", "JavaScript enabled in WebView", "CWE-79", 6),
     ]
 
 
 def _rules_swift() -> list[tuple]:
     return [
-        (re.compile(r"(?i)(password|secret|api_key|apikey|token)\s*[:=]\s*\"[^\"]{6,}\""), "S-HARDCODE-1", "Hardcoded credential in Swift source", "CWE-798", 8),
-        (re.compile(r"Process\(\)|posix_spawn"), "S-CMDI-1", "Process spawned from Swift code", "CWE-78", 7),
-        (re.compile(r"kSecTrustSettings|URLSession\.shared\.delegate|allowsArbitraryLoads"), "S-TLS-1", "ATS/TLS restrictions relaxed", "CWE-295", 7),
-        (re.compile(r"Insecure\.MD5|Insecure\.SHA1"), "S-CRYPTO-1", "Weak hash algorithm (MD5/SHA-1)", "CWE-327", 6),
-        (re.compile(r"evaluateJavaScript\s*\(\s*(?!.*static)"), "S-JSINJ-1", "WKWebView evaluateJavaScript with dynamic content", "CWE-95", 6),
+        (re.compile(r"(?i)\b(?:password|secret|api[_-]key|apikey|token)\b\s*[:=]\s*\"[^\"]{6,}\""), "S-HARDCODE-1", "Hardcoded credential in Swift source", "CWE-798", 8),
+        (re.compile(r"\bProcess\s*\(\s*\)|\bposix_spawn\b"), "S-CMDI-1", "Process spawned from Swift code", "CWE-78", 7),
+        (re.compile(r"\bkSecTrustSettings\b|\bURLSession\.shared\.delegate\b|\ballowsArbitraryLoads\b"), "S-TLS-1", "ATS/TLS restrictions relaxed", "CWE-295", 7),
+        (re.compile(r"\bInsecure\.(?:MD5|SHA1)\b"), "S-CRYPTO-1", "Weak hash algorithm (MD5/SHA-1)", "CWE-327", 6),
+        (re.compile(r"\bevaluateJavaScript\s*\(\s*(?!.*static)"), "S-JSINJ-1", "WKWebView evaluateJavaScript with dynamic content", "CWE-95", 6),
     ]
 
 
 def _rules_shell() -> list[tuple]:
     return [
         (re.compile(r"\beval\s+[\$\"]"), "SH-EVAL-1", "eval on expanded variables enables code injection", "CWE-95", 9),
-        (re.compile(r"curl[^|]*\|\s*(?:ba)?sh|wget[^|]*\|\s*(?:ba)?sh"), "SH-DL-1", "Remote script piped directly into shell", "CWE-494", 9),
-        (re.compile(r"(?i)(password|passwd|secret|token)\s*=\s*['\"][^'\"]{4,}['\"]"), "SH-HARDCODE-1", "Hardcoded credential in shell script", "CWE-798", 8),
-        (re.compile(r"rm\s+-rf?\s+[\"\$]"), "SH-DESTR-1", "rm -rf with variable path is dangerous", "CWE-78", 7),
+        (re.compile(r"\bcurl[^|]*\|\s*(?:ba)?sh\b|\bwget[^|]*\|\s*(?:ba)?sh\b"), "SH-DL-1", "Remote script piped directly into shell", "CWE-494", 9),
+        (re.compile(r"(?i)\b(?:password|passwd|secret|token)\b\s*=\s*['\"][^'\"]{4,}['\"]"), "SH-HARDCODE-1", "Hardcoded credential in shell script", "CWE-798", 8),
+        (re.compile(r"\brm\s+-rf?\s+[\"\$]"), "SH-DESTR-1", "rm -rf with variable path is dangerous", "CWE-78", 7),
         (re.compile(r"\bchmod\s+(?:777|666)\b"), "SH-PERM-1", "World-writable permissions set", "CWE-732", 6),
-        (re.compile(r"nc\s+-[el]|mkfifo.*nc\b"), "SH-REV-1", "Possible reverse-shell primitive (nc listener)", "CWE-78", 8),
-        (re.compile(r"sshpass|ssh .*-oStrictHostKeyChecking=no"), "SH-SSH-1", "SSH host-key checking disabled or cleartext password tool", "CWE-322", 7),
+        (re.compile(r"\bnc\s+-[el]\b|\bmkfifo\b.*\bnc\b"), "SH-REV-1", "Possible reverse-shell primitive (nc listener)", "CWE-78", 8),
+        (re.compile(r"\bsshpass\b|\bssh\b[^\n]*-oStrictHostKeyChecking=no\b"), "SH-SSH-1", "SSH host-key checking disabled or cleartext password tool", "CWE-322", 7),
     ]
 
 
 def _rules_sql() -> list[tuple]:
     return [
-        (re.compile(r"(?i)GRANT\s+ALL\s+PRIVILEGES"), "Q-GRANT-1", "GRANT ALL PRIVILEGES — excessive permissions", "CWE-250", 7),
-        (re.compile(r"(?i)CREATE\s+(?:USER|LOGIN)\s+\w+\s+WITH\s+PASSWORD\s*=\s*'[^']{1,7}'"), "Q-PASS-1", "Weak password in CREATE USER", "CWE-521", 7),
-        (re.compile(r"(?i)IDENTIFIED\s+BY\s+'[^']{1,7}'"), "Q-PASS-2", "Short password in IDENTIFIED BY clause", "CWE-521", 7),
-        (re.compile(r"(?i)EXECUTE\s+IMMEDIATE\s*\|\||sp_executesql\s*@sql\b"), "Q-DYN-1", "Dynamic SQL execution", "CWE-89", 6),
-        (re.compile(r"(?i)ENCRYPTION\s*=\s*NO|sslmode\s*=\s*disable"), "Q-TLS-1", "Connection encryption disabled", "CWE-319", 6),
+        (re.compile(r"(?i)\bGRANT\s+ALL\s+PRIVILEGES\b"), "Q-GRANT-1", "GRANT ALL PRIVILEGES - excessive permissions", "CWE-250", 7),
+        (re.compile(r"(?i)\bCREATE\s+(?:USER|LOGIN)\s+\w+\s+WITH\s+PASSWORD\s*=\s*'[^']{1,7}'"), "Q-PASS-1", "Weak password in CREATE USER", "CWE-521", 7),
+        (re.compile(r"(?i)\bIDENTIFIED\s+BY\s+'[^']{1,7}'"), "Q-PASS-2", "Short password in IDENTIFIED BY clause", "CWE-521", 7),
+        (re.compile(r"(?i)\bEXECUTE\s+IMMEDIATE\s*\|\||\bsp_executesql\s*@sql\b"), "Q-DYN-1", "Dynamic SQL execution", "CWE-89", 6),
+        (re.compile(r"(?i)\bENCRYPTION\s*=\s*NO\b|\bsslmode\s*=\s*disable\b"), "Q-TLS-1", "Connection encryption disabled", "CWE-319", 6),
     ]
 
 

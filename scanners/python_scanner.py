@@ -47,29 +47,31 @@ def _is_safe_password_assignment(line: str) -> bool:
     return bool(re.search(r"\b(password|passwd|secret|api[_-]?key|token)\s*=", lower_line))
 
 # (pattern, rule_id, title, cwe, score)
+# Word boundaries on the identifier avoid matching words like
+# "passwordless" or "application/json" substrings.
 RULES = [
-    (re.compile(r"password\s*=\s*['\"][^'\"]{3,}['\"]", re.I), "S-HARDCODE-1", "Hardcoded password in source", "CWE-259", 8),
-    (re.compile(r"secret\s*=\s*['\"][^'\"]{8,}['\"]", re.I), "S-HARDCODE-2", "Hardcoded secret in source", "CWE-798", 8),
-    (re.compile(r"api[_-]?key\s*=\s*['\"][^'\"]{8,}['\"]", re.I), "S-HARDCODE-3", "Hardcoded API key", "CWE-798", 8),
-    (re.compile(r"token\s*=\s*['\"][A-Za-z0-9_\-\.]{16,}['\"]", re.I), "S-HARDCODE-4", "Hardcoded token", "CWE-798", 7),
-    (re.compile(r"execute\s*\(\s*f?['\"][^'\"]*?(?:['\"]\s*\+|\{)(?!\s*#)"), "S-SQLI-1", "Possible SQL injection (string concatenation in execute)", "CWE-89", 9),
-    (re.compile(r"cursor\.execute\s*\([^)]*%\s+[A-Za-z(]"), "S-SQLI-2", "SQL query built with unsafe % formatting", "CWE-89", 8),
+    (re.compile(r"\bpassword\s*=\s*['\"][^'\"]{3,}['\"]", re.I), "S-HARDCODE-1", "Hardcoded password in source", "CWE-259", 8),
+    (re.compile(r"\bsecret\s*=\s*['\"][^'\"]{8,}['\"]", re.I), "S-HARDCODE-2", "Hardcoded secret in source", "CWE-798", 8),
+    (re.compile(r"\bapi[_-]?key\s*=\s*['\"][^'\"]{8,}['\"]", re.I), "S-HARDCODE-3", "Hardcoded API key", "CWE-798", 8),
+    (re.compile(r"\btoken\s*=\s*['\"][A-Za-z0-9_\-\.]{16,}['\"]", re.I), "S-HARDCODE-4", "Hardcoded token", "CWE-798", 7),
+    (re.compile(r"\bexecute\s*\(\s*f?['\"][^'\"]*?(?:['\"]\s*\+|\{)(?!\s*#)"), "S-SQLI-1", "Possible SQL injection (string concatenation in execute)", "CWE-89", 9),
+    (re.compile(r"\bcursor\.execute\s*\([^)]*%\s+[A-Za-z(]"), "S-SQLI-2", "SQL query built with unsafe % formatting", "CWE-89", 8),
     (re.compile(r"\.format\s*\([^)]*\).*SELECT|SELECT.*\.format\s*\("), "S-SQLI-3", "SQL query built with .format()", "CWE-89", 8),
     # Command injection: exclude safe uses like shell=False
-    (re.compile(r"subprocess\.(run|Popen|call|check_output|check_call)\s*\([^)]*shell\s*=\s*True"), "S-CMDI-1", "Shell=True allows command injection", "CWE-78", 9),
-    (re.compile(r"os\.system\s*\("), "S-CMDI-2", "os.system() with untrusted input risk", "CWE-78", 7),
+    (re.compile(r"\bsubprocess\.(?:run|Popen|call|check_output|check_call)\s*\([^)]*\bshell\s*=\s*True"), "S-CMDI-1", "Shell=True allows command injection", "CWE-78", 9),
+    (re.compile(r"\bos\.system\s*\("), "S-CMDI-2", "os.system() with untrusted input risk", "CWE-78", 7),
     (re.compile(r"\beval\s*\("), "S-CMDI-3", "Use of eval() - code injection risk", "CWE-95", 9),
     (re.compile(r"\bexec\s*\("), "S-CMDI-4", "Use of exec() - code injection risk", "CWE-95", 9),
-    (re.compile(r"pickle\.(loads|load)\s*\("), "S-DESER-1", "Unsafe pickle deserialization", "CWE-502", 9),
-    (re.compile(r"yaml\.load\s*\([^)]*(?!Loader)"), "S-DESER-2", "yaml.load without safe Loader", "CWE-502", 8),
-    (re.compile(r"paramiko|ftp|smtplib|poplib|imaplib"), "S-CLEAR-1", "Possible cleartext network usage", "CWE-319", 4),
-    (re.compile(r"requests\.get\s*\(\s*['\"]http://"), "S-CLEAR-2", "HTTP (not HTTPS) request", "CWE-319", 4),
-    (re.compile(r"urlopen\s*\(\s*['\"]http://"), "S-CLEAR-3", "HTTP (not HTTPS) urlopen", "CWE-319", 4),
+    (re.compile(r"\bpickle\.(?:loads|load)\s*\("), "S-DESER-1", "Unsafe pickle deserialization", "CWE-502", 9),
+    (re.compile(r"\byaml\.load\s*\([^)]*(?!Loader)"), "S-DESER-2", "yaml.load without safe Loader", "CWE-502", 8),
+    (re.compile(r"\b(?:paramiko|ftp|ftplib|smtplib|poplib|imaplib)\b"), "S-CLEAR-1", "Possible cleartext network usage", "CWE-319", 4),
+    (re.compile(r"\brequests\.get\s*\(\s*['\"]http://"), "S-CLEAR-2", "HTTP (not HTTPS) request", "CWE-319", 4),
+    (re.compile(r"\burlopen\s*\(\s*['\"]http://"), "S-CLEAR-3", "HTTP (not HTTPS) urlopen", "CWE-319", 4),
     (re.compile(r"\bmd5\s*\("), "S-CRYPTO-1", "Insecure MD5 hashing", "CWE-327", 5),
     (re.compile(r"\bsha1\s*\("), "S-CRYPTO-2", "Weak SHA-1 hashing", "CWE-327", 4),
-    (re.compile(r"random\.(random|randint|choice|uniform)\s*\("), "S-CRYPTO-3", "Non-cryptographic random for security", "CWE-330", 6),
-    (re.compile(r"assert\s+.*\b(is_admin|is_authenticated|is_superuser|is_staff|has_permission|has_role|logged_in|authenticated)\b"), "S-AUTH-1", "assert used for authorization (disabled with -O)", "CWE-287", 8),
-    (re.compile(r"exec\s*\(\s*['\"]rm\s+-rf|os\.remove|shutil\.rmtree"), "S-DELETE-1", "Destructive file operation", "CWE-20", 6),
+    (re.compile(r"\brandom\.(?:random|randint|choice|uniform)\s*\("), "S-CRYPTO-3", "Non-cryptographic random for security", "CWE-330", 6),
+    (re.compile(r"\bassert\s+.*\b(?:is_admin|is_authenticated|is_superuser|is_staff|has_permission|has_role|logged_in|authenticated)\b"), "S-AUTH-1", "assert used for authorization (disabled with -O)", "CWE-287", 8),
+    (re.compile(r"\bexec\s*\(\s*['\"]rm\s+-rf|\bos\.remove|\bshutil\.rmtree\b"), "S-DELETE-1", "Destructive file operation", "CWE-20", 6),
 ]
 
 
@@ -117,57 +119,102 @@ class PythonScanner:
         return _dedupe(findings)
 
     def _scan_taint_flow(self, filename: str, lines: list[str]) -> list[dict]:
-        """Detect multi-step injection patterns via basic taint tracking."""
+        """Detect multi-step injection patterns via basic taint tracking.
+
+        Improvements over the previous version:
+          - Uses word boundaries (``\\b``) instead of substring ``in``
+            so short names like ``x``, ``cmd``, ``i`` no longer produce
+            a finding on every other line.
+          - Clears the taint set at every function boundary so taint
+            never leaks across scopes.
+          - Dedupes by (source_line, var_name, rule_id) so a single
+            vulnerability no longer yields N findings.
+        """
         findings = []
-        taint_sources = {}  # var_name -> line_no where it's tainted
-        
+        # Tracks var_name -> source_line for the current function scope only.
+        scope_taint: dict[str, int] = {}
+        # Dedup keys per finding to avoid duplicate taint findings on the same sink.
+        seen: set[tuple[str, str]] = set()
+        TAINT_PATTERN = re.compile(
+            r"\b(?:input\b|sys\.argv\b|request\.(?:args|form)|os\.environ\b|sys\.stdin\b|\w+\.args\.\w+)"
+        )
+
+        def reset_scope():
+            scope_taint.clear()
+
         for line_no, line in enumerate(lines, start=1):
+            stripped = line.strip()
+            if not stripped:
+                continue
             if _is_comment_or_string(line):
                 continue
-            
+
             clean_line = _exclude_comment_suffix(line)
-            
-            # Detect taint sources: user input assignment
-            if any(src in clean_line for src in ["input(", "sys.argv", "request.args", "request.form", "os.environ", "sys.stdin"]):
-                # Extract variable name
-                var_match = re.search(r"(\w+)\s*=.*(?:input|argv|args|form|environ|stdin)", clean_line)
+
+            # Function boundary (top-level `def` / `async def`) — reset scope.
+            if re.match(r"^(?:async\s+)?def\s+\w+\s*\(", clean_line):
+                reset_scope()
+                continue
+
+            # Taint source: a variable assignment from a known user-input API.
+            if re.match(r"^\s*([A-Za-z_]\w*)\s*=", clean_line) and TAINT_PATTERN.search(clean_line):
+                var_match = re.match(r"^\s*([A-Za-z_]\w*)\s*=", clean_line)
                 if var_match:
-                    taint_sources[var_match.group(1)] = line_no
-            
-            # Check if tainted var is used in dangerous sink
-            for var_name, source_line in list(taint_sources.items()):
-                # SQL injection via tainted variable
-                if var_name in clean_line and re.search(rf"(execute|query|SELECT).*{re.escape(var_name)}", clean_line, re.I):
-                    findings.append({
-                        "file": filename,
-                        "line": line_no,
-                        "code": line.strip()[:300],
-                        "scanner": self.name,
-                        "rule_id": "S-SQLI-TAINT",
-                        "title": f"SQL injection via tainted variable '{var_name}' (sourced at line {source_line})",
-                        "severity_score": 9,
-                        "severity": "Critical",
-                        **resolve_cwe("CWE-89"),
-                        "description": f"Variable '{var_name}' tainted at line {source_line}, used unsafely in query at line {line_no}.",
-                        "raw": {"rule_id": "S-SQLI-TAINT", "language": "python"},
-                    })
-                
-                # Command injection via tainted variable
-                if var_name in clean_line and re.search(rf"(subprocess|os\.system|exec|shell_exec).*{re.escape(var_name)}", clean_line, re.I):
-                    findings.append({
-                        "file": filename,
-                        "line": line_no,
-                        "code": line.strip()[:300],
-                        "scanner": self.name,
-                        "rule_id": "S-CMDI-TAINT",
-                        "title": f"Command injection via tainted variable '{var_name}' (sourced at line {source_line})",
-                        "severity_score": 9,
-                        "severity": "Critical",
-                        **resolve_cwe("CWE-78"),
-                        "description": f"Variable '{var_name}' tainted at line {source_line}, used unsafely in command execution at line {line_no}.",
-                        "raw": {"rule_id": "S-CMDI-TAINT", "language": "python"},
-                    })
-        
+                    scope_taint[var_match.group(1)] = line_no
+
+            # Taint propagation: x = y (or y.func()) — if y is tainted, x is too.
+            prop_match = re.match(r"^\s*([A-Za-z_]\w*)\s*=", clean_line)
+            if prop_match and scope_taint:
+                rhs = clean_line[prop_match.end():]
+                for tainted_var in list(scope_taint.keys()):
+                    if re.search(rf"\b{re.escape(tainted_var)}\b", rhs):
+                        scope_taint[prop_match.group(1)] = scope_taint[tainted_var]
+                        break
+
+            # Sinks: check each tainted var against SQL / command sinks with
+            # word-boundary matching on the variable name.
+            for var_name, source_line in list(scope_taint.items()):
+                if not re.search(rf"\b{re.escape(var_name)}\b", clean_line):
+                    continue
+                # SQL sink
+                if re.search(r"\b(?:execute|query)\s*\(", clean_line) or re.search(
+                    r"\bSELECT\b", clean_line, re.I
+                ):
+                    key = (f"S-SQLI-TAINT-{source_line}-{var_name}", filename)
+                    if key not in seen:
+                        seen.add(key)
+                        findings.append({
+                            "file": filename,
+                            "line": line_no,
+                            "code": line.strip()[:300],
+                            "scanner": self.name,
+                            "rule_id": "S-SQLI-TAINT",
+                            "title": f"SQL injection via tainted variable '{var_name}' (sourced at line {source_line})",
+                            "severity_score": 9,
+                            "severity": "Critical",
+                            **resolve_cwe("CWE-89"),
+                            "description": f"Variable '{var_name}' tainted at line {source_line}, used unsafely in query at line {line_no}.",
+                            "raw": {"rule_id": "S-SQLI-TAINT", "language": "python", "source_line": source_line},
+                        })
+                # Command sink
+                if re.search(r"\b(?:subprocess|os\.system|exec)\b", clean_line):
+                    key = (f"S-CMDI-TAINT-{source_line}-{var_name}", filename)
+                    if key not in seen:
+                        seen.add(key)
+                        findings.append({
+                            "file": filename,
+                            "line": line_no,
+                            "code": line.strip()[:300],
+                            "scanner": self.name,
+                            "rule_id": "S-CMDI-TAINT",
+                            "title": f"Command injection via tainted variable '{var_name}' (sourced at line {source_line})",
+                            "severity_score": 9,
+                            "severity": "Critical",
+                            **resolve_cwe("CWE-78"),
+                            "description": f"Variable '{var_name}' tainted at line {source_line}, used unsafely in command execution at line {line_no}.",
+                            "raw": {"rule_id": "S-CMDI-TAINT", "language": "python", "source_line": source_line},
+                        })
+
         return findings
 
     def scan_path(self, path: Path) -> list[dict]:
