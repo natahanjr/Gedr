@@ -25,7 +25,6 @@ from scanners.java_scanner import JavaScanner
 from scanners.python_scanner import PythonScanner
 from scanners.web_scanner import WebScanner
 from scanners.dependency_scanner import DependencyScanner
-from backend.docker_orchestrator import DockerScannerManager
 from backend.custom_rule_engine import CustomRuleEngine
 from backend.taint_analyzer import TaintAnalyzer
 from scanners.generic_scanner import GENERIC_SCANNERS
@@ -68,6 +67,8 @@ LANGUAGE_EXTENSIONS = {
 }
 
 # Directories never worth scanning: vendored deps, build output, VCS.
+# Stored lowercase; comparison is case-insensitive so on Windows a folder
+# named ".GIT" or "__PYCACHE__" is still skipped.
 SKIP_DIRS = {
     ".git", ".hg", ".svn", "__pycache__", ".mypy_cache", ".pytest_cache",
     "node_modules", "bower_components", ".venv", "venv", "env", "site-packages",
@@ -173,7 +174,9 @@ class ScannerManager:
     def collect_files(self, source: Path) -> list[Path]:
         files = []
         for root, dirs, names in source.walk():
-            dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
+            # Case-insensitive skip so ".GIT" / "__PYCACHE__" are also pruned
+            # on Windows / macOS-default filesystems.
+            dirs[:] = [d for d in dirs if d.lower() not in SKIP_DIRS]
             for name in names:
                 if detect_language(name):
                     files.append(Path(root) / name)
