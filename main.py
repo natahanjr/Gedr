@@ -18,6 +18,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
+# The brand contains "ə" (U+0259); when stdout/stderr are redirected to a
+# file or pipe, Python falls back to the legacy cp1252 codec on Windows and
+# logging the brand would crash the process. Force UTF-8 with replacement.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError, OSError):
+        pass
+
 # Set up logging early
 from backend.error_handling import setup_logging
 
@@ -72,11 +81,12 @@ def main():
     logger.info("Gədr Starting")
     logger.info("=" * 70)
 
-    # Check API key
-    if not os.getenv("AI_PRIMARY_KEY"):
-        logger.info("AI_PRIMARY_KEY not set - AI analysis will use offline fallback")
-        print("[i] AI_PRIMARY_KEY not set - AI analysis will be offline (local fallback).")
-        print("    Set it with:  $env:AI_PRIMARY_KEY=\"AIza...\"")
+    # Check API key (CCI_AI_API_KEY is the canonical name; legacy
+    # AI_PRIMARY_KEY is still accepted by ai.ai_agent.)
+    if not (os.getenv("CCI_AI_API_KEY") or os.getenv("AI_PRIMARY_KEY")):
+        logger.info("CCI_AI_API_KEY not set - AI analysis will use offline fallback")
+        print("[i] CCI_AI_API_KEY not set - AI analysis will be offline (local fallback).")
+        print('    Set it with:  $env:CCI_AI_API_KEY="AIza..."')
     else:
         logger.info("AI API key detected - AI analysis enabled")
 
