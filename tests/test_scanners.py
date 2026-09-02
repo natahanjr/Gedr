@@ -77,12 +77,13 @@ class TestPythonScanner:
         assert any(f["rule_id"] == "S-CRYPTO-1" for f in findings)
 
     def test_no_false_positives_in_comments(self, scanner):
-        """Comments should not trigger findings."""
-        code = '# password = "test123"'
+        """Comments must not trigger findings."""
+        code = '# password = "test123"\n# api_key = "deadbeefcafe1234"'
         findings = scanner.scan_text("test.py", code)
-        # Note: current regex-based approach may still match comments
-        # This is a known limitation documented as "false positive"
-        pass
+        assert findings == [], (
+            f"Comment-only lines must not produce findings, got: "
+            f"{[(f['line'], f['rule_id']) for f in findings]}"
+        )
 
     def test_finding_structure(self, scanner):
         """Verify finding has required fields."""
@@ -141,8 +142,9 @@ class TestJavaScanner:
         """Detect use of weak random in Java."""
         code = 'Random rand = new Random(); int token = rand.nextInt();'
         findings = scanner.scan_text("Test.java", code)
-        # Should detect weak randomness
-        pass
+        assert any(
+            f["rule_id"] in ("J-CRYPTO-4", "J-CRYPTO-4b") for f in findings
+        ), f"Expected crypto/random finding, got: {[f['rule_id'] for f in findings]}"
 
 
 class TestCppScanner:
@@ -159,11 +161,15 @@ class TestCppScanner:
         assert any(f["rule_id"].startswith("C-") for f in findings)
 
     def test_sql_injection_cpp(self, scanner):
-        """Detect SQL injection in C/C++."""
+        """Detect SQL injection in C/C++ (via format string in DB calls)."""
         code = 'sprintf(query, "SELECT * FROM users WHERE id=%s", user_id);'
         findings = scanner.scan_text("main.cpp", code)
-        # Should detect string formatting risks
-        pass
+        # The cpp scanner flags sprintf() with user-controlled format as
+        # a buffer-overflow sink (C-OVERFLOW-4). Command-injection-style
+        # inputs are also detected via the system() rule.
+        assert any(f["rule_id"].startswith("C-") for f in findings), (
+            f"Expected a C-prefixed rule, got: {[f['rule_id'] for f in findings]}"
+        )
 
 
 class TestWebScanner:

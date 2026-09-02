@@ -27,6 +27,7 @@ RULES = [
     (re.compile(r"DESKeySpec|DESedeKeySpec|[\"']DES[\"']\s*[,)]"), "J-CRYPTO-2", "Weak DES encryption", "CWE-327", 7),
     (re.compile(r"getBytes\s*\(\s*\)\s*[^\"]*Cipher|cipher\.doFinal\s*\(\s*\w+\.getBytes\s*\(\s*\)"), "J-CRYPTO-3", "Incorrect charset in crypto operations", "CWE-327", 4),
     (re.compile(r"Math\.random\s*\(\s*\)"), "J-CRYPTO-4", "Math.random() not cryptographically secure", "CWE-330", 5),
+    (re.compile(r"\bnew\s+java\.util\.Random\s*\(|\bnew\s+Random\s*\(\s*\)"), "J-CRYPTO-4b", "java.util.Random is not cryptographically secure (use SecureRandom)", "CWE-330", 5),
     (re.compile(r"System\.getenv\s*\([^)]*\)\s*\+|getenv\s*\([^)]*\)\s*.*print|\.println\s*\([^)]*getenv"), "J-INFO-1", "Environment variable in output (info leak)", "CWE-200", 4),
     (re.compile(r"Class\.forName\s*\([^)]*getParameter|URLClassLoader"), "J-INJECT-1", "Reflection / dynamic class loading from input", "CWE-470", 7),
 ]
