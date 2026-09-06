@@ -338,4 +338,14 @@ Gedr/
 
 ---
 
+## License
+
+Copyright (c) 2026 [Natahan](https://github.com/natahanjr) — [RazForge Lab](https://github.com/natahanjr)
+
+Licensed under the [RazForge Source Available License](LICENSE).
+
+For commercial licensing inquiries: razforge@proton.me
+
+---
+
 *Last updated: August 2026*

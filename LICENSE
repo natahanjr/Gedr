@@ -1,6 +1,7 @@
-MIT License
+RazForge Source Available License
+=================================
 
-Copyright (c) 2026 CyberCode Inspector contributors
+Copyright (c) 2026 Natahan — RazForge Lab
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -9,8 +10,24 @@ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. SOURCE AVAILABLE: The source code is made available for inspection,
+   learning, and contribution purposes.
+
+2. NON-COMMERCIAL USE: The Software may be used for non-commercial purposes,
+   including personal projects, education, and research.
+
+3. COMMERCIAL USE: Commercial use requires a separate license agreement.
+   Contact razforge@proton.me for commercial licensing terms.
+
+4. MODIFICATIONS: Modifications to the Software are permitted for personal
+   and educational use. Modified versions may not be distributed commercially
+   without explicit written permission.
+
+5. ATTRIBUTION: Any use, modification, or distribution of the Software must
+   retain the original copyright notice and this license.
+
+6. CONTRIBUTIONS: Contributions to the Software are welcome under the same
+   license terms. Contributors retain copyright to their contributions.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -19,3 +36,6 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+For commercial licensing inquiries: razforge@proton.me
+Repository: https://github.com/natahanjr/Gedr
