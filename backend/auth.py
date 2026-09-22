@@ -1,7 +1,9 @@
 """
 Authentication and Authorization for Gədr.
 """
+import logging
 import os
+import secrets as _secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from jose import JWTError, jwt
@@ -9,12 +11,15 @@ from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 
+logger = logging.getLogger(__name__)
+
 # Configuration
 SECRET_KEY = os.getenv("SECRET_KEY")
 if not SECRET_KEY:
-    raise RuntimeError(
-        "SECRET_KEY environment variable is required. "
-        "Generate one with: python -c \"import secrets; print(secrets.token_urlsafe(32))\""
+    SECRET_KEY = _secrets.token_hex(32)
+    logger.warning(
+        "SECRET_KEY not set — using auto-generated key. "
+        "Set SECRET_KEY in .env for persistent token validation."
     )
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
