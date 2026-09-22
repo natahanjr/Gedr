@@ -7,6 +7,9 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   tests:
     runs-on: ubuntu-latest
@@ -21,8 +24,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
-          pip install pytest bandit
+          pip install --no-cache-dir -r requirements.txt
+          pip install --no-cache-dir pytest
 
       - name: Run Security Smoke Test
         run: python tests/smoke_test.py
@@ -31,21 +34,25 @@ jobs:
         run: pytest -q
 
   self-sast:
-    # Eat our own dog food: run the same kind of scan Gedr runs on its
-    # own codebase. Bandit here catches the same Python security issues
-    # Gedr would catch in user code.
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install Bandit
-        run: pip install bandit
-      - name: Bandit on Gedr
-        # Non-blocking: warnings only. Replace with `&& exit 1` if you
-        # want CI to fail on any high-severity finding.
-        run: |
-          bandit -r backend/ ai/ scanners/ scanner_connectors/ \
-                 reports/ database/ -ll --confidence-level high \
-                 -f txt || echo "[bandit] warnings printed above"
+      - name: Install tools
+        run: pip install --no-cache-dir bandit pip-audit
+      - name: Bandit SAST
+        run: bandit -r backend/ ai/ scanners/ scanner_connectors/ reports/ database/ -ll --confidence-level high -f json -o bandit-results.json
+      - name: Upload Bandit SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: bandit-results.json
+        if: always()
+      - name: pip-audit dependency check
+        run: pip-audit -r requirements.txt || true
+      - name: Fail on high-severity Bandit findings
+        run: bandit -r backend/ ai/ scanners/ scanner_connectors/ reports/ database/ -l --confidence-level high
