@@ -16,7 +16,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: ${POSTGRES_DB:-gedr}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -28,7 +28,7 @@ services:
     container_name: gedr-backend
     restart: always
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     environment:
       SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
       DATABASE_URL: postgresql://${POSTGRES_USER:-gedr}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-gedr}
@@ -37,6 +37,8 @@ services:
       CCI_AI_BASE_URL: ${CCI_AI_BASE_URL:-}
       CCI_AI_MODEL: ${CCI_AI_MODEL:-}
       CCI_ALLOWED_SCAN_ROOTS: ${CCI_ALLOWED_SCAN_ROOTS:-}
+      CCI_SSL_KEYFILE: ${CCI_SSL_KEYFILE:-}
+      CCI_SSL_CERTFILE: ${CCI_SSL_CERTFILE:-}
     # db is on profile "postgres" - only required when running with
     # --profile postgres. The default backend uses SQLite.
     healthcheck:
@@ -58,7 +60,7 @@ services:
     container_name: cybercode-ai
     restart: always
     ports:
-      - "8002:8002"
+      - "127.0.0.1:8002:8002"
     environment:
       AI_PRIMARY_KEY: ${AI_PRIMARY_KEY}
       AI_PRIMARY_MODEL: ${AI_PRIMARY_MODEL:-}
@@ -84,7 +86,7 @@ services:
     restart: unless-stopped
     profiles: ["scanners"]
     ports:
-      - "9390:9390"
+      - "127.0.0.1:9390:9390"
     environment:
       GVMD_PASSWORD: ${OPENVAS_PASSWORD:-admin}
     volumes:
