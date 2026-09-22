@@ -1,10 +1,10 @@
-# Official Docker image for CyberCode Inspector's Analysis Engine
+# Docker image for Gədr's Analysis Engine
 # This image bundles all required scanners to ensure consistent environments.
 
 FROM python:3.11-slim
 
 # Install system dependencies for various scanners
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
     wget \
@@ -24,6 +24,11 @@ RUN pip install --no-cache-dir \
 
 # Set working directory
 WORKDIR /app
+
+# Create non-root user
+RUN groupadd -r scanner && useradd -r -g scanner -d /app -s /sbin/nologin scanner \
+    && chown -R scanner:scanner /app
+USER scanner
 
 # The scanner manager in the main app will invoke these via 'docker run'
 # or by executing commands inside the container.
