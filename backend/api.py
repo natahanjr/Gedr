@@ -13,15 +13,24 @@ Endpoints:
 
 Run:  uvicorn backend.api:app --host 0.0.0.0 --port 8000
 """
+import ipaddress
+import logging
 import os
+import re
+import secrets as _secrets
 import shutil
+import socket
 import tempfile
 import threading
+import time
 import uuid
+from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import requests
+
+logger = logging.getLogger(__name__)
 
 from fastapi import (
     BackgroundTasks, Depends, FastAPI, File, Form, HTTPException, Request,
@@ -39,9 +48,40 @@ from backend.path_security import validate_scan_path, PathSecurityError
 from backend.upload_validator import validate_upload, UploadValidationError
 from database.sqlite_manager import PostgresManager
 from reports.pdf_generator import SecurityReportGenerator
-from backend.auth import AuthHandler, get_current_user, get_current_user_optional
+from backend.auth import AuthHandler, get_current_user, get_current_user_optional, oauth2_scheme
 from backend.autofix_engine import AutoFixEngine
 from backend.rate_limit import check as rate_check
+
+# --- SSRF protection ---------------------------------------------------
+_BLOCKED_NETWORKS = [
+    ipaddress.ip_network("127.0.0.0/8"),
+    ipaddress.ip_network("10.0.0.0/8"),
+    ipaddress.ip_network("172.16.0.0/12"),
+    ipaddress.ip_network("192.168.0.0/16"),
+    ipaddress.ip_network("169.254.0.0/16"),
+    ipaddress.ip_network("::1/128"),
+    ipaddress.ip_network("fc00::/7"),
+]
+
+
+def _validate_scan_target(target: str) -> str:
+    """Validate external scan target; reject private/reserved IPs."""
+    target = target.strip()
+    if not target:
+        raise HTTPException(400, "Target is required")
+    if len(target) > 253:
+        raise HTTPException(400, "Target too long")
+    if re.search(r'[;&|`$(){}\n\r]', target):
+        raise HTTPException(400, "Target contains invalid characters")
+    host = target.split("/")[2] if "//" in target else target.split(":")[0]
+    try:
+        ip = ipaddress.ip_address(socket.gethostbyname(host))
+        for net in _BLOCKED_NETWORKS:
+            if ip in net:
+                raise HTTPException(403, "Scanning private/reserved targets is not allowed")
+    except socket.gaierror:
+        pass
+    return target
 
 app = FastAPI(
     title="Gədr API",
@@ -193,14 +233,13 @@ def list_connectors():
 async def scan_external(
     connector: str = Form(...),
     target: str = Form(...),
-    user: dict | None = Depends(get_current_user_optional),
+    current_user: dict = Depends(get_current_user),
 ):
     """Run an external scanner (openvas/nmap/nessus/custom) against a target.
 
     Returns normalized findings in the standard CCI format.
     """
-    if not target or not target.strip():
-        raise HTTPException(400, "Target is required")
+    target = _validate_scan_target(target)
 
     def _do():
         result = manager.run_connector(connector, target.strip())
