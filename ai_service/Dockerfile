@@ -10,9 +10,9 @@ RUN pip install --no-cache-dir \
     pydantic \
     requests
 
-COPY main.py gemini_client.py ./
+COPY main.py gedr_client.py ./
 
-ENV GEMINI_MODEL=gemini-2.5-flash
+ENV CCI_AI_MODEL=gemini-2.5-flash
 ENV HOST=0.0.0.0
 ENV PORT=8002
 

@@ -189,7 +189,7 @@ def findings_page():
                 st.code(rec.get("secure_code") or "", language="text")
                 st.caption(f"Model: {rec.get('model')}")
             else:
-                st.warning("No AI analysis yet. Set GEMINI_API_KEY (or CCI_AI_API_KEY) in .env and use the API endpoint to generate one.")
+                st.warning("No AI analysis yet. Set CCI_AI_API_KEY in .env and use the API endpoint to generate one.")
             st.markdown(
                 f"[Download full report]({API_URL}/api/scans/{scan_id}/report) (PDF)",
                 unsafe_allow_html=True,

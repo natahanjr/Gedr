@@ -224,6 +224,13 @@ async def register(request: Request, username: str = Form(...), password: str = 
     return {"msg": f"User {username} created successfully", "user_id": user_id}
 
 
+@app.post("/api/auth/logout")
+async def logout(current_user: dict = Depends(get_current_user), token: str = Depends(oauth2_scheme)):
+    """Revoke the current JWT token."""
+    AuthHandler.revoke_token(token)
+    return {"msg": "Logged out"}
+
+
 @app.get("/")
 def index():
     """Serve the SPA dashboard."""
@@ -233,20 +240,13 @@ def index():
 # ----------------------------------------------------------------------
 @app.get("/api/health")
 def health():
-    # Probe the DB so the health endpoint fails loud if the store is
-    # unreachable (instead of returning "ok" while scans silently crash).
     try:
-        db_ok = bool(db.list_projects()) or True  # list_projects exercises the connection
-        db_err = None
-    except Exception as e:
+        db_ok = bool(db.list_projects()) or True
+    except Exception:
         db_ok = False
-        db_err = str(e)
     return {
         "status": "ok" if db_ok else "degraded",
         "ai_enabled": agent.available,
-        "ai_model": agent.model,
-        "db_ok": db_ok,
-        "db_error": db_err,
         "tools": {
             "bandit": bool(shutil.which("bandit")),
             "semgrep": bool(shutil.which("semgrep")),

@@ -1,10 +1,10 @@
 """
-Gemini client for the AI microservice.
+Gedr AI client for the AI microservice.
 
 Reads config from environment:
-  GEMINI_API_KEY   — required for AI mode
-  GEMINI_MODEL     — model name (default: gemini-3.6-flash)
-  GEMINI_BASE_URL  — optional API endpoint override
+  CCI_AI_API_KEY   — required for AI mode
+  CCI_AI_MODEL     — model name (default: gemini-2.5-flash)
+  CCI_AI_BASE_URL  — optional API endpoint override
 """
 import json
 import os
@@ -20,9 +20,9 @@ if _env.exists():
 import google.generativeai as genai  # noqa: E402
 
 # --- Config ---
-_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
-_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
-_BASE_URL = os.getenv("GEMINI_BASE_URL", "").rstrip("/")
+_API_KEY = os.getenv("CCI_AI_API_KEY", "").strip()
+_MODEL = os.getenv("CCI_AI_MODEL", "gemini-2.5-flash")
+_BASE_URL = os.getenv("CCI_AI_BASE_URL", "").rstrip("/")
 
 _RETRIES = 3
 _BACKOFF_INIT = 2.0
@@ -109,11 +109,11 @@ _examples = {
 # ------------------------------------------------------------------
 # Client
 # ------------------------------------------------------------------
-class GeminiClient:
+class GedrAIClient:
     def __init__(self):
         self.api_key = _API_KEY
         self.model_name = _MODEL
-        self.provider = "gemini" if _API_KEY else "offline"
+        self.provider = "gedr-ai" if _API_KEY else "offline"
         self.available = bool(_API_KEY)
         self._model = None
 
@@ -181,7 +181,7 @@ class GeminiClient:
                     backoff = min(backoff * 2, _BACKOFF_MAX)
                     continue
                 raise
-        raise RuntimeError("Gemini call failed after retries")
+        raise RuntimeError("Gedr AI call failed after retries")
 
 
 # ------------------------------------------------------------------

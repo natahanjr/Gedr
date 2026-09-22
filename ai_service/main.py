@@ -24,17 +24,17 @@ if _env.exists():
     load_dotenv(_env)
 
 try:
-    from ai_service.gemini_client import GeminiClient, get_fallback
+    from ai_service.gedr_client import GedrAIClient, get_fallback
 except ImportError:
-    from gemini_client import GeminiClient, get_fallback
+    from gedr_client import GedrAIClient, get_fallback
 
 app = FastAPI(
-    title="Gədr — AI Service",
-    description="Gemini-powered security reasoning microservice",
+    title="Gedr — AI Service",
+    description="Gedr AI-powered security reasoning microservice",
     version="1.0.0",
 )
 
-client = GeminiClient()
+client = GedrAIClient()
 
 
 # ------------------------------------------------------------------

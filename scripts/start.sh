@@ -1,5 +1,5 @@
 #!/bin/bash
-# CyberCode Inspector — One-Click Start (Linux / macOS)
+# Gedr — One-Click Start (Linux / macOS)
 # Reads credentials from .env in the project root.
 
 set -e
@@ -14,8 +14,8 @@ if [ -f .env ]; then
 fi
 
 # Check for API key
-if [ -z "$GEMINI_API_KEY" ]; then
-    echo "[!] GEMINI_API_KEY not set in .env — AI analysis will use offline fallback"
+if [ -z "$CCI_AI_API_KEY" ]; then
+    echo "[!] CCI_AI_API_KEY not set in .env — AI analysis will use offline fallback"
 fi
 
 # Check Python
@@ -30,14 +30,14 @@ else
     PYTHON="python3"
 fi
 
-echo "[*] CyberCode Inspector starting..."
+echo "[*] Gedr starting..."
 echo "    Backend: http://127.0.0.1:8000"
 echo "    AI svc:  http://127.0.0.1:8002"
 
 # Start AI microservice
 echo "[AI] Starting AI microservice..."
 cd "$(dirname "$0")/.."
-GEMINI_API_KEY="$GEMINI_API_KEY" GEMINI_MODEL="$GEMINI_MODEL" \
+CCI_AI_API_KEY="$CCI_AI_API_KEY" CCI_AI_MODEL="$CCI_AI_MODEL" \
     "$PYTHON" start_ai.py &
 AI_PID=$!
 
@@ -48,7 +48,7 @@ curl -sf http://127.0.0.1:8002/ai/health > /dev/null 2>&1 && echo "[AI] Ready" |
 # Start backend
 echo "[BE] Starting backend..."
 cd "$(dirname "$0")/.."
-GEMINI_API_KEY="$GEMINI_API_KEY" \
+CCI_AI_API_KEY="$CCI_AI_API_KEY" \
 SECRET_KEY="$SECRET_KEY" \
 CCI_BACKEND_PORT=8000 \
 CCI_AI_URL="http://127.0.0.1:8002" \
@@ -61,7 +61,7 @@ curl -sf http://127.0.0.1:8000/api/health > /dev/null 2>&1 && echo "[BE] Ready" 
 
 echo ""
 echo "============================================================"
-echo "  CyberCode Inspector is running!"
+echo "  Gedr is running!"
 echo "  Dashboard: http://127.0.0.1:8000"
 echo "  Press Ctrl+C to stop all services"
 echo "============================================================"
