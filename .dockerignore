@@ -1,0 +1,52 @@
+# Secrets & local config
+.env
+.env.*
+!.env.example
+
+# Runtime artifacts
+cybercode.db
+*.db-journal
+*.db-wal
+*.db-shm
+logs/
+uploads/
+reports/output/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.pyc
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.github/
+.gitignore
+.gitlab-ci.yml
+
+# Docker (don't include compose files in context)
+Dockerfile*
+docker-compose*.yml
+docker/
+
+# Documentation
+*.md
+LICENSE
+
+# Development
+_archive_dev/
+_sample_code/
