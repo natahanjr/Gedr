@@ -138,6 +138,10 @@ async def no_cache_static(request: Request, call_next):
     response = await call_next(request)
     if request.url.path.startswith("/static") or request.url.path == "/":
         response.headers["Cache-Control"] = "no-cache, must-revalidate"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     return response
 
 
@@ -367,14 +371,14 @@ def _run_ai_enrichment(scan_id: str) -> None:
     Runs in a worker thread so the HTTP request that triggered the
     scan does not block on slow LLM calls (each finding has a
     deliberate 0.5s sleep between calls; 50 findings = 25s).
-    Failures are swallowed - the scan itself is already complete.
+    Failures are logged — the scan itself is already complete.
     """
     try:
         findings = db.get_findings(scan_id)
         if findings and agent and agent.available:
             agent.analyze_many(findings, db, max_items=50)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("AI enrichment failed for scan %s: %s", scan_id, e)
 
 
 def _run_ai_summary(scan_id: str) -> None:
@@ -416,8 +420,8 @@ def _run_ai_summary(scan_id: str) -> None:
                 conn.commit()
             finally:
                 conn.close()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("AI summary update failed for scan %s: %s", scan_id, e)
 
 
 # ----------------------------------------------------------------------
@@ -500,8 +504,8 @@ async def run_ai_analysis(scan_id: str, user: dict | None = Depends(get_current_
                                 db.save_ai_recommendation(
                                     fid, {**rec, "model": rec.get("model", "ai-service")}
                                 )
-                            except Exception:
-                                pass
+                            except Exception as e:
+                                logger.warning("Failed to save AI recommendation for finding %s: %s", fid, e)
                     return {
                         "analyzed": data.get("analyzed", 0),
                         "total": len(findings),
