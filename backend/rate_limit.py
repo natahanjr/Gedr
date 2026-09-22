@@ -16,6 +16,8 @@ from collections import defaultdict
 _lock = threading.Lock()
 _window: float = float(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "60"))
 _store: dict[str, list[float]] = defaultdict(list)
+_last_cleanup: float = time.monotonic()
+_CLEANUP_INTERVAL: float = 300  # evict stale keys every 5 minutes
 
 
 def _key(request) -> str:
@@ -36,11 +38,28 @@ def _key(request) -> str:
     return request.client.host if request.client else "unknown"
 
 
+def _maybe_cleanup():
+    """Evict keys where all timestamps have expired."""
+    global _last_cleanup
+    now = time.monotonic()
+    if now - _last_cleanup < _CLEANUP_INTERVAL:
+        return
+    _last_cleanup = now
+    with _lock:
+        expired = [
+            key for key, times in _store.items()
+            if not any(now - t < _window for t in times)
+        ]
+        for key in expired:
+            del _store[key]
+
+
 def check(limit: int, request) -> tuple[bool, dict]:
     """Return (allowed, info).
 
     ``limit`` is max requests per ``_window`` seconds.
     """
+    _maybe_cleanup()
     now = time.monotonic()
     key = f"{limit}:{_key(request)}"
     with _lock:
