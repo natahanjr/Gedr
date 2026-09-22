@@ -11,8 +11,8 @@ run_tests:
   stage: test
   image: python:${PYTHON_VERSION}
   script:
-    - pip install -r requirements.txt
-    - pip install pytest
+    - pip install --no-cache-dir -r requirements.txt
+    - pip install --no-cache-dir pytest
     - python tests/smoke_test.py
     - pytest -q
 
@@ -20,9 +20,17 @@ security_scan:
   stage: scan
   image: python:${PYTHON_VERSION}
   script:
-    - pip install -r requirements.txt
-    - # Add command to trigger the Gədr API scan here
-    - echo "Scanning project..."
-  only:
-    - main
-    - master
+    - pip install --no-cache-dir -r requirements.txt
+    - pip install --no-cache-dir bandit pip-audit safety
+    - bandit -r backend/ ai/ scanners/ scanner_connectors/ reports/ database/ -ll --confidence-level high -f json -o bandit-report.json || true
+    - pip-audit --format json --output pip-audit-report.json || true
+    - safety check --json --output safety-report.json || true
+  artifacts:
+    paths:
+      - bandit-report.json
+      - pip-audit-report.json
+      - safety-report.json
+    when: always
+  rules:
+    - if: $CI_MERGE_REQUEST_IID
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
