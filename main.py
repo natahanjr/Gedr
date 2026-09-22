@@ -31,6 +31,8 @@ for _stream in (sys.stdout, sys.stderr):
 from backend.error_handling import setup_logging
 
 BACKEND_PORT = int(os.getenv("CCI_BACKEND_PORT", "8000"))
+SSL_KEYFILE = os.getenv("CCI_SSL_KEYFILE")
+SSL_CERTFILE = os.getenv("CCI_SSL_CERTFILE")
 LOG_FILE = Path(ROOT) / "logs" / "cybercode.log"
 LOG_LEVEL = os.getenv("CCI_LOG_LEVEL", "INFO")
 
@@ -50,12 +52,18 @@ def run_backend():
     logger.info(f"Starting Gədr on http://127.0.0.1:{BACKEND_PORT}")
     logger.info(f"API documentation: http://127.0.0.1:{BACKEND_PORT}/docs")
     logger.info(f"Log file: {LOG_FILE}")
+    if SSL_KEYFILE and SSL_CERTFILE:
+        logger.info("TLS enabled")
     
     print(f"[Gədr] Running at http://127.0.0.1:{BACKEND_PORT}")
     print(f"[Gədr] API docs at http://127.0.0.1:{BACKEND_PORT}/docs")
     print(f"[Gədr] Logs: {LOG_FILE}")
     
-    uvicorn.run("backend.api:app", host="0.0.0.0", port=BACKEND_PORT, log_level="warning")
+    uvicorn.run(
+        "backend.api:app", host="0.0.0.0", port=BACKEND_PORT,
+        ssl_keyfile=SSL_KEYFILE, ssl_certfile=SSL_CERTFILE,
+        log_level="warning",
+    )
 
 
 def run_legacy_dashboard():
