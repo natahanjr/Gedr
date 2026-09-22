@@ -84,12 +84,24 @@ class CustomScannerConnector(ScannerConnector):
                 findings=[], error=f"Command not found: {cmd_template.split()[0]}",
             )
 
+        # Reject shell metacharacters to prevent injection
+        import re as _re
+        if _re.search(r'[;&|`$(){}\n\r!]', target):
+            return ScanResult(
+                scanner_name=self.name, success=False,
+                findings=[], error="Target contains invalid characters",
+            )
+
         try:
             cmd = cmd_template.format(target=target)
             timeout = int(self.config.get("timeout", 120))
 
+            # Use shlex to split into argument list — no shell=True
+            import shlex
+            cmd_list = shlex.split(cmd)
+
             proc = subprocess.run(
-                cmd, shell=True,
+                cmd_list, shell=False,
                 capture_output=True, text=True, timeout=timeout,
             )
 
