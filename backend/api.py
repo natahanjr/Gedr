@@ -83,6 +83,19 @@ def _validate_scan_target(target: str) -> str:
         pass
     return target
 
+
+# --- Account lockout ---------------------------------------------------
+_failed_logins: dict[str, list[float]] = defaultdict(list)
+_LOGIN_LOCKOUT_THRESHOLD = 10
+_LOGIN_LOCKOUT_WINDOW = 900  # 15 minutes
+
+
+def _check_login_lockout(username: str):
+    now = time.time()
+    _failed_logins[username] = [t for t in _failed_logins[username] if now - t < _LOGIN_LOCKOUT_WINDOW]
+    if len(_failed_logins[username]) >= _LOGIN_LOCKOUT_THRESHOLD:
+        raise HTTPException(429, "Account temporarily locked due to too many failed attempts")
+
 app = FastAPI(
     title="Gədr API",
     description="AI-enhanced multi-language static security analysis platform",
@@ -169,28 +182,45 @@ async def run_in_thread(fn, *args, **kwargs):
 # ----------------------------------------------------------------------
 @app.post("/api/auth/login")
 async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
-    _enforce_rate(5, request)  # 5 login attempts per minute
+    _enforce_rate(5, request)
+    _check_login_lockout(form_data.username)
     user = db.get_user(form_data.username)
     if not user or not AuthHandler.verify_password(form_data.password, user["hashed_password"]):
+        _failed_logins[form_data.username].append(time.time())
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
         )
+    _failed_logins.pop(form_data.username, None)
 
     access_token = AuthHandler.create_access_token(data={"sub": user["username"], "role": user["role"]})
     return {"access_token": access_token, "token_type": "bearer", "role": user["role"]}
 
 @app.post("/api/auth/register")
 async def register(request: Request, username: str = Form(...), password: str = Form(...)):
-    _enforce_rate(3, request)  # 3 registrations per minute
-    # Allow disabling public registration (e.g. once the first admin exists).
+    _enforce_rate(3, request)
     if os.getenv("REGISTER_ENABLED", "true").lower() not in ("1", "true", "yes", "on"):
         raise HTTPException(status_code=403, detail="Public registration is disabled")
+
+    # Username validation
+    if len(username) < 3 or len(username) > 64:
+        raise HTTPException(400, "Username must be 3-64 characters")
+    if not re.match(r'^[a-zA-Z0-9_-]+$', username):
+        raise HTTPException(400, "Username must be alphanumeric (underscores and hyphens allowed)")
+
+    # Password validation
+    if len(password) < 8:
+        raise HTTPException(400, "Password must be at least 8 characters")
+    if len(password) > 128:
+        raise HTTPException(400, "Password too long")
+    if password.lower() == username.lower():
+        raise HTTPException(400, "Password cannot be the same as username")
+
     if db.get_user(username):
         raise HTTPException(status_code=400, detail="Username already registered")
 
     hashed_pw = AuthHandler.get_password_hash(password)
-    user_id = db.create_user(username, hashed_pw, "user")  # Always assign "user" role
+    user_id = db.create_user(username, hashed_pw, "user")
     return {"msg": f"User {username} created successfully", "user_id": user_id}
 
 
@@ -672,6 +702,8 @@ async def download_report(scan_id: str, user: dict | None = Depends(get_current_
 
 @app.delete("/api/projects/{project_id}")
 async def delete_project(project_id: str, current_user: dict = Depends(get_current_user)):
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can delete projects")
     if not db.get_project(project_id):
         raise HTTPException(404, "Project not found")
     db.delete_project(project_id)
@@ -681,5 +713,7 @@ async def delete_project(project_id: str, current_user: dict = Depends(get_curre
 @app.delete("/api/history")
 async def clear_history(current_user: dict = Depends(get_current_user)):
     """Delete all projects, scans, findings and AI recommendations."""
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can clear history")
     db.clear_history()
     return {"deleted": True}
