@@ -131,7 +131,10 @@ manager = ScannerManager(db)
 # users who want container isolation, but the backend now always
 # resolves through this in-process agent — no more "two parallel
 # implementations disagree about whether AI is on" state.
-_AI_MICROSERVICE = os.getenv("CCI_AI_MICROSERVICE_URL", "").rstrip("/")
+# CCI_AI_URL is the legacy alias set by run.py / scripts/start.sh.
+_AI_MICROSERVICE = (
+    os.getenv("CCI_AI_MICROSERVICE_URL") or os.getenv("CCI_AI_URL") or ""
+).rstrip("/")
 agent = _DirectAgent()
 autofix = AutoFixEngine(agent)
 if _AI_MICROSERVICE:

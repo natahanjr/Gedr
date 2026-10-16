@@ -34,6 +34,8 @@ services:
       # The backend always uses SQLite; the database file lives on the
       # gedr_data volume (named volumes can only mount directories).
       CCI_DB_PATH: /app/data/cybercode.db
+      # Route AI calls to the ai sidecar (same Docker network).
+      CCI_AI_MICROSERVICE_URL: http://ai:8002
       CCI_AI_API_KEY: ${CCI_AI_API_KEY:-}
       CCI_AI_PROVIDER: ${CCI_AI_PROVIDER:-native}
       CCI_AI_BASE_URL: ${CCI_AI_BASE_URL:-}
