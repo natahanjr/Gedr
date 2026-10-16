@@ -547,9 +547,14 @@ async def run_ai_analysis(scan_id: str, user: dict | None = Depends(get_current_
             except Exception as e:
                 print(f"[AI] Microservice call failed: {e}; falling back to in-process agent")
 
-        if agent and agent.available:
+        if agent:
             processed = agent.analyze_many(findings, db, max_items=50)
-            return {"analyzed": processed, "total": len(findings)}
+            mode = "live AI" if agent.available else "offline rule-based fallback"
+            return {
+                "analyzed": processed,
+                "total": len(findings),
+                "overall_summary": f"Analyzed via {mode}.",
+            }
         raise RuntimeError("AI service not available")
 
     try:
@@ -617,7 +622,23 @@ async def scan_summary(scan_id: str, user: dict | None = Depends(get_current_use
                 return {"summary": text.strip(), "model": agent.model}
             except Exception as e:
                 raise RuntimeError(f"AI summary failed: {e}")
-        raise RuntimeError("AI service not available")
+        # No AI configured: build a deterministic summary from the data
+        # so users still get an executive overview (never a silent 503).
+        bd = {"Critical": 0, "High": 0, "Medium": 0, "Low": 0}
+        for f in findings:
+            bd[f.get("severity", "Low")] += 1
+        top = sorted(findings, key=lambda x: x.get("severity_score", 0), reverse=True)[:3]
+        top_lines = "; ".join(
+            f"{f.get('title')} ({f.get('file')}:{f.get('line')})" for f in top
+        ) or "none"
+        summary = (
+            f"This assessment covered {len(findings)} findings "
+            f"(Critical: {bd['Critical']}, High: {bd['High']}, Medium: {bd['Medium']}, Low: {bd['Low']}) "
+            f"for a computed security score of {score}/100 (grade {grade}). "
+            f"Highest-priority issues: {top_lines}. "
+            "Set CCI_AI_API_KEY to enable Gədr AI-generated reasoning and remediation guidance."
+        )
+        return {"summary": summary, "model": "deterministic (no AI key configured)"}
 
     try:
         return await run_in_thread(_do_summary)

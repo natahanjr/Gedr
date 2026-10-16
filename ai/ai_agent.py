@@ -36,6 +36,12 @@ def _load_dotenv() -> None:
         if not line or line.startswith("#") or "=" not in line:
             continue
         key, _, value = line.partition("=")
+        value = value.strip()
+        # Strip inline comments ("KEY=value  # comment") so values are
+        # never corrupted with trailing comment text.
+        for sep in (" #", "\t#"):
+            if sep in value:
+                value = value.split(sep, 1)[0]
         os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
 
 
@@ -58,10 +64,11 @@ AI_FALLBACK_MODEL = os.getenv("AI_FALLBACK_MODEL", "")
 
 # Third-tier fallback: deep reasoning provider
 AI_REASONING_KEY = os.getenv("AI_REASONING_KEY", "").strip()
+AI_REASONING_URL = os.getenv("AI_REASONING_URL", "").rstrip("/") or AI_FALLBACK_URL
 REASONING_MODEL = os.getenv("AI_REASONING_MODEL", "")
 
 # Retry / timeout
-MAX_RETRIES = 2
+MAX_RETRIES = 3
 INITIAL_BACKOFF = 1.0
 MAX_BACKOFF = 8.0
 REQUEST_TIMEOUT = 60.0
@@ -195,11 +202,12 @@ class _OpenAIBackend:
         self.model = model
         self.timeout = timeout
 
-    def generate(self, prompt: str) -> str:
+    def generate(self, prompt: str, retries: int | None = None) -> str:
+        retries = MAX_RETRIES if retries is None else retries
         backoff = INITIAL_BACKOFF
         last_err = None
 
-        for attempt in range(MAX_RETRIES):
+        for attempt in range(retries):
             try:
                 resp = requests.post(
                     f"{self.base_url}/chat/completions",
@@ -221,21 +229,24 @@ class _OpenAIBackend:
                 )
             except (requests.Timeout, requests.ConnectionError) as e:
                 last_err = e
-                if attempt < MAX_RETRIES - 1:
+                if attempt < retries - 1:
                     time.sleep(backoff)
                     backoff = min(backoff * 2, MAX_BACKOFF)
                     continue
-                raise RuntimeError(f"AI API unreachable after {MAX_RETRIES} attempts: {e}")
+                raise RuntimeError(f"AI API unreachable after {retries} attempts: {e}")
 
             if resp.status_code in (429, 500, 502, 503, 504):
                 last_err = RuntimeError(f"HTTP {resp.status_code}")
-                if attempt < MAX_RETRIES - 1:
+                if attempt < retries - 1:
                     time.sleep(backoff)
                     backoff = min(backoff * 2, MAX_BACKOFF)
                     continue
                 raise RuntimeError(f"AI API error after retries: {resp.status_code}")
 
-            resp.raise_for_status()
+            if resp.status_code >= 400:
+                # Non-retryable client error (bad key, bad request, ...)
+                raise RuntimeError(f"AI API error: HTTP {resp.status_code}")
+
             data = resp.json()
             content = data["choices"][0]["message"].get("content", "")
             if not content:
@@ -350,16 +361,18 @@ class GedrAgent:
 
         # Third-tier backend: deep reasoning provider
         # (reasoning model — needs a long timeout; chain skips it when queued)
-        if AI_REASONING_KEY:
+        if AI_REASONING_KEY and AI_REASONING_URL:
             try:
                 self._backends.append(
-                    _OpenAIBackend(AI_REASONING_KEY, AI_FALLBACK_URL, REASONING_MODEL, timeout=180.0)
+                    _OpenAIBackend(AI_REASONING_KEY, AI_REASONING_URL, REASONING_MODEL, timeout=180.0)
                 )
                 if not self.enabled:
                     self.enabled = True
                     self.model_name = REASONING_MODEL
             except Exception as e:
                 print(f"[AI] Reasoning fallback unavailable: {e}")
+        elif AI_REASONING_KEY:
+            print("[AI] AI_REASONING_KEY set but no URL (AI_REASONING_URL / AI_FALLBACK_URL) — reasoning tier disabled")
 
     @property
     def available(self) -> bool:
@@ -407,9 +420,12 @@ class GedrAgent:
             return _local_fallback(finding)
 
     def analyze_many(self, findings: list[dict], db, max_items: int = 20) -> int:
-        if not self.enabled:
-            return 0
+        """Analyze findings and persist recommendations.
 
+        Works even when no AI backend is configured: each finding then
+        receives an offline rule-based explanation (model: "offline
+        fallback"), as documented in the README's fallback chain.
+        """
         todo = []
         for finding in findings:
             finding_id = finding.get("finding_id") or finding.get("id")
@@ -424,14 +440,16 @@ class GedrAgent:
                 rec = self.analyze_finding(finding)
             except Exception:
                 continue
-            if not rec.get("explanation") or rec.get("model") == "offline fallback":
+            if not rec.get("explanation"):
                 continue
             try:
-                db.save_ai_recommendation(finding_id, {**rec, "model": self.model_name})
+                db.save_ai_recommendation(finding_id, {**rec, "model": rec.get("model", self.model_name)})
                 done += 1
             except Exception:
                 continue
-            time.sleep(0.5)
+            # Only pace live LLM calls; offline lookups are instant.
+            if rec.get("model") != "offline fallback":
+                time.sleep(0.5)
         return done
 
 

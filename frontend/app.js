@@ -114,7 +114,7 @@ async function loadHealth() {
     $("#ai-status-text").textContent = state.health.ai_enabled
       ? "Gədr: Scanner" : "Gədr: offline (no API key)";
     $("#ai-hint").textContent = state.health.ai_enabled
-      ? "Gədr analysis enabled" : "no API key — offline explanations will be used";
+      ? "Gədr analysis enabled" : "no API key — offline rule-based explanations will be used";
 
     const tools = Object.entries(state.health.tools).filter(([, v]) => v).map(([k]) => k);
     $("#tool-status").textContent = tools.length
@@ -303,7 +303,8 @@ function renderScanResult(data) {
     </div>`;
 
   const aiBtn = $("#scan-ai-btn");
-  aiBtn.disabled = !(state.health && state.health.ai_enabled);
+  // Analysis always works: live AI when a key is configured, offline
+  // rule-based explanations otherwise (never silently unavailable).
   aiBtn.addEventListener("click", () => runAiAnalysis(data.scan_id, aiBtn));
 }
 
@@ -350,7 +351,7 @@ async function selectProject(id) {
 async function loadScanDetail(scanId) {
   const body = $("#dash-scan-body");
   body.innerHTML = `<div class="empty"><span class="spinner"></span>Loading scan…</div>`;
-  $("#dash-ai-analyze").disabled = !(state.health && state.health.ai_enabled);
+  $("#dash-ai-analyze").disabled = false;
   try {
     const data = await api(`/api/scans/${scanId}`);
     state.currentScanId = scanId;
@@ -379,7 +380,7 @@ async function loadScanDetail(scanId) {
         <div class="sev-bars">${bars}</div>
       </div>
       <div style="margin-bottom:20px">
-        <button class="btn btn-primary btn-sm" id="dash-summarize-btn" ${!state.health || !state.health.ai_enabled ? "disabled" : ""}>✨ Gədr Summary</button>
+        <button class="btn btn-primary btn-sm" id="dash-summarize-btn">✨ Gədr Summary</button>
         <div id="dash-summary-panel" style="margin-top:14px"></div>
       </div>
       <div class="findings-list">
@@ -398,7 +399,7 @@ async function loadScanDetail(scanId) {
       </div>`;
 
     const sumBtn = $("#dash-summarize-btn");
-    if (sumBtn && state.health && state.health.ai_enabled) {
+    if (sumBtn) {
       sumBtn.addEventListener("click", () => runAiSummary(scanId, "dash-summary-panel", sumBtn));
     }
   } catch (e) {
@@ -449,7 +450,7 @@ async function loadAiPage() {
       scanSel.innerHTML = detail.scans.map(s =>
         `<option value="${s.id}">${(s.started_at || "").slice(0, 16).replace("T", " ")} · score ${s.security_score} · ${s.findings_count} findings</option>`
       ).join("");
-      btn.disabled = !(state.health && state.health.ai_enabled);
+      btn.disabled = false;
     };
     projSel.onchange = loadScans;
     await loadScans();
@@ -474,8 +475,7 @@ async function fillScanSelect(projectId) {
 
 async function renderFindings(scanId) {
   state.currentScanId = scanId;
-  const aiEnabled = !!(state.health && state.health.ai_enabled);
-  $("#ai-analyze-all").disabled = !aiEnabled;
+  $("#ai-analyze-all").disabled = false;
   $("#ai-analyze-all").dataset.scanId = scanId;
   $("#download-report").disabled = false;
   $("#download-report").dataset.scanId = scanId;
@@ -623,7 +623,11 @@ async function runAiAnalysis(scanId, btn) {
   if (btn) btn.textContent = "Analyzing…";
   try {
     const r = await api(`/api/scans/${scanId}/ai`, { method: "POST" });
-    toast(`Gədr analysis complete — ${r.analyzed}/${r.total} findings`);
+    if (r.analyzed === 0 && r.total > 0) {
+      toast(`Gədr analysis: nothing new — ${r.total} findings already analyzed`, true);
+    } else {
+      toast(`Gədr analysis complete — ${r.analyzed}/${r.total} findings`);
+    }
     if (!$("#page-findings").classList.contains("hidden")) {
       const sel = $("#findings-scan");
       if (sel.value) renderFindings(sel.value);
