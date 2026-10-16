@@ -5,14 +5,13 @@ stages:
   - scan
 
 variables:
-  PYTHON_VERSION: "3.11"
+  PYTHON_VERSION: "3.12"
 
 run_tests:
   stage: test
   image: python:${PYTHON_VERSION}
   script:
-    - pip install --no-cache-dir -r requirements.txt
-    - pip install --no-cache-dir pytest
+    - pip install --no-cache-dir -r requirements-dev.txt
     - python tests/smoke_test.py
     - pytest -q
 
@@ -22,6 +21,10 @@ security_scan:
   script:
     - pip install --no-cache-dir -r requirements.txt
     - pip install --no-cache-dir bandit pip-audit safety
+    # Blocking gate, aligned with the GitHub workflow: high-severity /
+    # high-confidence findings fail the pipeline.
+    - bandit -r backend/ ai/ scanners/ scanner_connectors/ reports/ database/ -l --confidence-level high
+    # Advisory audits: reports are kept as artifacts, never blocking.
     - bandit -r backend/ ai/ scanners/ scanner_connectors/ reports/ database/ -ll --confidence-level high -f json -o bandit-report.json || true
     - pip-audit --format json --output pip-audit-report.json || true
     - safety check --json --output safety-report.json || true

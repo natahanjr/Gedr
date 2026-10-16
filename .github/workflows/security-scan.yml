@@ -20,12 +20,10 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
       - name: Install dependencies
-        run: |
-          pip install --no-cache-dir -r requirements.txt
-          pip install --no-cache-dir pytest
+        run: pip install --no-cache-dir -r requirements-dev.txt
 
       - name: Run Security Smoke Test
         run: python tests/smoke_test.py
@@ -42,15 +40,17 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
       - name: Install tools
-        run: pip install --no-cache-dir bandit pip-audit
-      - name: Bandit SAST
-        run: bandit -r backend/ ai/ scanners/ scanner_connectors/ reports/ database/ -ll --confidence-level high -f json -o bandit-results.json
+        run: pip install --no-cache-dir bandit bandit-sarif-formatter pip-audit
+      - name: Bandit SAST (SARIF for code scanning)
+        # bandit's JSON output is not SARIF; the sarif formatter plugin
+        # adds the `sarif` format consumed by upload-sarif below.
+        run: bandit -r backend/ ai/ scanners/ scanner_connectors/ reports/ database/ -ll --confidence-level high -f sarif -o bandit-results.sarif || true
       - name: Upload Bandit SARIF
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: bandit-results.json
+          sarif_file: bandit-results.sarif
         if: always()
       - name: pip-audit dependency check
         run: pip-audit -r requirements.txt || true
