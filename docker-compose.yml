@@ -66,11 +66,17 @@ services:
     ports:
       - "127.0.0.1:8002:8002"
     environment:
+      # ai_service/gedr_client.py reads the CCI_* names (with
+      # AI_PRIMARY_* legacy fallback); pass both for compatibility.
+      CCI_AI_API_KEY: ${CCI_AI_API_KEY:-}
+      CCI_AI_MODEL: ${CCI_AI_MODEL:-}
+      CCI_AI_BASE_URL: ${CCI_AI_BASE_URL:-}
       AI_PRIMARY_KEY: ${CCI_AI_API_KEY:-}
       AI_PRIMARY_MODEL: ${CCI_AI_MODEL:-}
       AI_PRIMARY_URL: ${CCI_AI_BASE_URL:-}
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8002/ai/health"]
+      # python:3.12-slim images ship no curl — use stdlib urllib.
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/ai/health', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3
