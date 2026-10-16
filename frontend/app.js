@@ -14,6 +14,9 @@ const state = {
   projects: [],
   scanData: null,
   findingsFilter: { Critical: true, High: true, Medium: true, Low: true },
+  token: localStorage.getItem("gedr_token") || "",
+  role: localStorage.getItem("gedr_role") || "",
+  user: localStorage.getItem("gedr_user") || "",
 };
 
 /* ---------------- Utilities ---------------- */
@@ -32,11 +35,53 @@ function toast(msg, isError = false) {
   toast._t = setTimeout(() => el.classList.add("hidden"), 4200);
 }
 
+function authHeaders() {
+  return state.token ? { "Authorization": `Bearer ${state.token}` } : {};
+}
+
+function setAuthState(token, role, user) {
+  state.token = token || "";
+  state.role = role || "";
+  state.user = user || "";
+  if (token) {
+    localStorage.setItem("gedr_token", token);
+    localStorage.setItem("gedr_role", state.role);
+    localStorage.setItem("gedr_user", state.user);
+  } else {
+    localStorage.removeItem("gedr_token");
+    localStorage.removeItem("gedr_role");
+    localStorage.removeItem("gedr_user");
+  }
+  renderAuthUi();
+}
+
+function renderAuthUi() {
+  const loggedIn = !!state.token;
+  $("#auth-form").classList.toggle("hidden", loggedIn);
+  $("#auth-user").classList.toggle("hidden", !loggedIn);
+  if (loggedIn) {
+    $("#auth-user-name").textContent = state.user;
+    $("#auth-user-role").textContent = state.role;
+  }
+  // Clear History is admin-only on the backend — hide it otherwise.
+  $("#clear-history").classList.toggle("hidden", state.role !== "admin");
+}
+
 async function api(path, options = {}) {
-  const res = await fetch(path, options);
+  const res = await fetch(path, {
+    ...options,
+    headers: { ...authHeaders(), ...(options.headers || {}) },
+  });
   if (!res.ok) {
     let msg = `HTTP ${res.status}`;
     try { msg = (await res.json()).detail || msg; } catch (_) { /* ignore */ }
+    if (res.status === 401) {
+      // Token expired/invalid: drop it and ask the user to log in.
+      if (state.token) {
+        setAuthState("", "", "");
+        toast("Session expired — please log in again.", true);
+      }
+    }
     throw new Error(msg);
   }
   return res.json();
@@ -540,7 +585,7 @@ async function downloadReport(scanId) {
   if (!scanId) return;
   const btn = $("#download-report") || $("#dash-download-report");
   if (btn) btn.disabled = true;  try {
-    const res = await fetch(`/api/scans/${scanId}/report`);
+    const res = await fetch(`/api/scans/${scanId}/report`, { headers: authHeaders() });
     if (!res.ok) {
       let msg = `HTTP ${res.status}`;
       try { msg = (await res.json()).detail || msg; } catch (_) { /* ignore */ }
@@ -618,6 +663,48 @@ function init() {
     state.findingsFilter[cb.value] = cb.checked;
     applySeverityFilter();
   }));
+
+  // --- Auth ---
+  renderAuthUi();
+  const doAuth = async (mode) => {
+    const username = $("#auth-username").value.trim();
+    const password = $("#auth-password").value;
+    if (!username || !password) { toast("Enter username and password", true); return; }
+    const btn = mode === "login" ? $("#auth-login-btn") : $("#auth-register-btn");
+    btn.disabled = true;
+    try {
+      if (mode === "register") {
+        const fd = new URLSearchParams({ username, password });
+        await api("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: fd,
+        });
+        toast("Account created — logging in…");
+      }
+      const fd = new URLSearchParams({ username, password });
+      const r = await api("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: fd,
+      });
+      setAuthState(r.access_token, r.role || "user", username);
+      toast(`Logged in as ${username}`);
+      $("#auth-password").value = "";
+    } catch (e) {
+      toast((mode === "register" ? "Registration" : "Login") + " failed: " + e.message, true);
+    } finally {
+      btn.disabled = false;
+    }
+  };
+  $("#auth-form").addEventListener("submit", e => { e.preventDefault(); doAuth("login"); });
+  $("#auth-register-btn").addEventListener("click", () => doAuth("register"));
+  $("#auth-logout-btn").addEventListener("click", async () => {
+    try { await api("/api/auth/logout", { method: "POST" }); } catch (_) { /* token may be expired */ }
+    setAuthState("", "", "");
+    toast("Logged out");
+  });
+
   $("#download-report").addEventListener("click", () =>
     downloadReport($("#download-report").dataset.scanId));
   $("#dash-download-report").addEventListener("click", () =>

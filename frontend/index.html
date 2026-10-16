@@ -30,9 +30,24 @@
       <button class="tab" data-page="dashboard">Dashboard</button>
       <button class="tab" data-page="findings">Findings</button>
     </nav>
-    <div class="status-pill" id="ai-status">
-      <span class="dot"></span>
-      <span id="ai-status-text">Checking…</span>
+    <div class="nav-right">
+      <div class="status-pill" id="ai-status">
+        <span class="dot"></span>
+        <span id="ai-status-text">Checking…</span>
+      </div>
+      <!-- Auth: shown when not logged in -->
+      <form id="auth-form" class="auth-form" autocomplete="on">
+        <input type="text" id="auth-username" placeholder="Username" autocomplete="username" required minlength="3" maxlength="64">
+        <input type="password" id="auth-password" placeholder="Password" autocomplete="current-password" required minlength="8" maxlength="128">
+        <button type="submit" class="btn btn-primary btn-sm" id="auth-login-btn">Log in</button>
+        <button type="button" class="btn btn-outline btn-sm" id="auth-register-btn">Register</button>
+      </form>
+      <!-- Auth: shown when logged in -->
+      <div id="auth-user" class="auth-user hidden">
+        <span class="auth-name" id="auth-user-name"></span>
+        <span class="auth-role" id="auth-user-role"></span>
+        <button type="button" class="btn btn-outline btn-sm" id="auth-logout-btn">Log out</button>
+      </div>
     </div>
   </div>
 </header>

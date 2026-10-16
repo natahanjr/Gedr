@@ -933,3 +933,32 @@ input[type="text"]:focus, .select:focus {
   .gauge-num { font-size: 28px; }
   .card { padding: var(--space-md); border-radius: var(--radius-md); }
 }
+
+/* ---------------- Auth (navbar login) ---------------- */
+.nav-right { display: flex; align-items: center; gap: var(--space-md); }
+
+.auth-form { display: flex; align-items: center; gap: 8px; }
+.auth-form input {
+  background: var(--bg-input, #0f1629);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 6px);
+  color: var(--text);
+  font-size: 12px;
+  padding: 6px 10px;
+  width: 110px;
+}
+.auth-form input:focus { border-color: var(--accent); outline: none; }
+
+.auth-user { display: flex; align-items: center; gap: 8px; }
+.auth-name { font-size: 12px; font-weight: 600; color: var(--text); }
+.auth-role {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+  background: var(--accent-dim, rgba(59,130,246,.15));
+  color: var(--accent);
+  padding: 2px 6px; border-radius: 999px;
+}
+
+@media (max-width: 768px) {
+  .nav-right { flex-direction: column; align-items: flex-end; gap: 6px; }
+  .auth-form input { width: 90px; }
+}
