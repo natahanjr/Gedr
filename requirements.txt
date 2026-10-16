@@ -9,11 +9,14 @@ requests>=2.31.0
 fpdf2>=2.7.9
 python-jose>=3.3.0
 passlib[bcrypt]>=1.7.4
+# passlib 1.7.4 is incompatible with bcrypt>=4.1 (removed __about__
+# attribute breaks passlib's backend detection). Pin until passlib
+# releases a fix.
+bcrypt==4.0.1
 
-# --- AI provider (choose one) ---
-# primary-provider SDK (install only if using the native provider)
-# pyyaml>=6.0                 # Custom rule engine (pip install pyyaml)
-#
-# --- Optional scanners (install only if needed) ---
-# bandit>=1.7.8            # Python security scanner (pip install bandit)
-# semgrep>=1.80.0          # Multi-language rules engine (heavy: ~100MB)
+# --- Required by code shipped in this repo ---
+pyyaml>=6.0                 # backend/custom_rule_engine.py (imported at backend startup)
+python-dotenv>=1.0.0        # ai_service/ (.env loader)
+google-generativeai>=0.8.0  # ai/ai_agent.py native provider + ai_service/gedr_client.py
+
+# --- Dev/test dependencies: pip install -r requirements-dev.txt ---
