@@ -132,12 +132,17 @@ class TestAgent:
     def test_analyze_many_saves_results(self):
         agent = GedrAgent(api_key="sk-test", model="m")
         agent.enabled = True
-        agent._backend = Mock(return_value='{"explanation":"x","impact":"y","attack_scenario":"z","root_cause":"c","recommended_fix":"f","secure_code":"s","owasp":"Injection","cwe":"CWE-89"}')
+        # Inject a mock backend into the real _backends chain (the old
+        # single `_backend` attribute no longer exists).
+        fake_bk = Mock()
+        fake_bk.generate.return_value = '{"explanation":"x","impact":"y","attack_scenario":"z","root_cause":"c","recommended_fix":"f","secure_code":"s","owasp":"Injection","cwe":"CWE-89"}'
+        agent._backends = [fake_bk]
         mock_db = Mock()
         mock_db.get_recommendation.return_value = None
         mock_db.save_ai_recommendation.return_value = 99
         findings = [{"id": "1", "cwe": "CWE-89", "title": "t", "file": "a.py", "line": 1, "severity": "High", "scanner": "py", "code": "x"}]
-        result = agent.analyze_many(findings, mock_db, max_items=5)
+        with patch("time.sleep"):
+            result = agent.analyze_many(findings, mock_db, max_items=5)
         assert result == 1
         mock_db.save_ai_recommendation.assert_called_once()
 

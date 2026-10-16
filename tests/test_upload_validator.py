@@ -59,8 +59,10 @@ class TestFilenameValidation:
         with pytest.raises(UploadValidationError):
             validate_filename("malware.exe")
         
+        # NOTE: .sh is a *supported scan target* (shell scripts are
+        # analyzed) — use a genuinely executable-only type instead.
         with pytest.raises(UploadValidationError):
-            validate_filename("script.sh")
+            validate_filename("library.dll")
 
     def test_filename_too_long_rejected(self):
         """Filename > 255 chars should be rejected."""

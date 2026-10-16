@@ -51,9 +51,11 @@ class TestPathSecurityValidation:
 
     def test_reject_system_paths_linux(self):
         """System-critical paths should be rejected (Linux)."""
-        if os.name == "posix":
-            # Skip this test on Windows
-            pass
+        if os.name != "posix":
+            pytest.skip("Linux-only test")
+        for bad in ("/etc", "/proc", "/sys", "/root", "/boot"):
+            with pytest.raises(PathSecurityError, match="system-critical"):
+                validate_scan_path(bad, allow_absolute=True)
 
     def test_reject_system_paths_windows(self):
         """System-critical paths should be rejected (Windows)."""
@@ -80,16 +82,16 @@ class TestPathSecurityValidation:
             validate_scan_path(123)
 
     def test_traversal_with_parent_refs(self):
-        """Paths with .. should be validated."""
+        """Paths containing .. must be rejected outright."""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create a subdirectory
             subdir = Path(tmpdir) / "subdir"
             subdir.mkdir()
             
-            # Test that .. resolving to valid dir works
+            # ".." segments are rejected regardless of where they resolve
             parent_ref = str(subdir / "..")
-            result = validate_scan_path(parent_ref, allow_absolute=True)
-            assert result.exists()
+            with pytest.raises(PathSecurityError, match="traversal"):
+                validate_scan_path(parent_ref, allow_absolute=True)
 
 
 class TestSymlinkSafety:
@@ -251,13 +253,11 @@ class TestPathSecurityIntegration:
             outside_dir = Path(tmpdir) / "outside"
             outside_dir.mkdir()
             
-            # Try to access outside directory via traversal
+            # Attempted traversal out of `safe` into `outside` must be
+            # rejected before any filesystem access happens.
             traversal_path = str(safe_dir / ".." / "outside")
-            
-            # Validation should resolve the path and prevent escaping
-            result = validate_scan_path(traversal_path, allow_absolute=True)
-            assert result.exists()
-            # The resolved path should be the actual "outside" dir
+            with pytest.raises(PathSecurityError, match="traversal"):
+                validate_scan_path(traversal_path, allow_absolute=True)
 
 
 if __name__ == "__main__":
