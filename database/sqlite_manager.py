@@ -13,13 +13,16 @@ file (a real Postgres driver is out of scope for this build). See
 README "Database" section.
 """
 import json
+import os
 import sqlite3
 import threading
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-DB_PATH = Path(__file__).resolve().parent.parent / "cybercode.db"
+# CCI_DB_PATH lets deployments (e.g. Docker with a mounted volume)
+# relocate the SQLite file. Default: repo root / cybercode.db
+DB_PATH = Path(os.getenv("CCI_DB_PATH") or (Path(__file__).resolve().parent.parent / "cybercode.db"))
 _lock = threading.RLock()
 
 

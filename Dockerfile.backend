@@ -1,5 +1,6 @@
 # Dockerfile for the FastAPI Backend
-FROM python:3.11-slim
+# Python 3.12 required: backend/scanner_manager.py uses Path.walk() (added in 3.12)
+FROM python:3.12-slim
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -25,5 +26,6 @@ USER gedr
 # Expose FastAPI port
 EXPOSE 8000
 
-# Start the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Start the application (backend.api exposes the FastAPI `app`;
+# main.py is the local dev launcher and defines no `app` object)
+CMD ["uvicorn", "backend.api:app", "--host", "0.0.0.0", "--port", "8000"]
