@@ -178,8 +178,13 @@ class ScannerManager:
             # on Windows / macOS-default filesystems.
             dirs[:] = [d for d in dirs if d.lower() not in SKIP_DIRS]
             for name in names:
+                p = Path(root) / name
+                # Never scan through symlinks: a link inside the scanned
+                # tree could point at any readable file on the system.
+                if p.is_symlink():
+                    continue
                 if detect_language(name):
-                    files.append(Path(root) / name)
+                    files.append(p)
         return files
 
     def scan_path(self, source: Path, use_ai: bool = True, max_findings: int = 500) -> dict:

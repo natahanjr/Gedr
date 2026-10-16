@@ -23,11 +23,14 @@ def validate_scan_path(user_path: str, allow_absolute: bool = False,
 
     Args:
         user_path: The path provided by the user (may contain .., symlinks, etc.)
-        allow_absolute: If True, absolute paths are allowed ONLY when they
-            fall under one of the comma-separated ``allowed_roots``.
-        allowed_roots: Colon-separated (or comma-separated) list of allowed
-            absolute root directories. Empty means no absolute paths allowed
-            even when allow_absolute=True.
+        allow_absolute: If True, absolute user paths are accepted (still
+            subject to the system-directory blocklist and, when
+            ``allowed_roots`` is set, the allowlist below).
+        allowed_roots: Comma- or colon-separated list of allowed absolute
+            root directories. When non-empty, absolute paths must fall
+            under one of the roots. When empty, absolute paths are
+            unrestricted apart from the system blocklist (local-dev
+            default; set CCI_ALLOWED_SCAN_ROOTS to tighten).
 
     Returns:
         A validated, normalized Path object.
@@ -50,6 +53,11 @@ def validate_scan_path(user_path: str, allow_absolute: bool = False,
     except (ValueError, TypeError) as e:
         raise PathSecurityError(f"Invalid path: {e}")
 
+    # NOTE: decide absoluteness from the *user-supplied* path, not the
+    # resolved one — resolve() always returns an absolute path on POSIX,
+    # so checking the resolved value would reject every relative path.
+    user_path_is_absolute = requested.is_absolute()
+
     # Resolve the path to normalize (resolves symlinks on most systems)
     try:
         resolved = requested.resolve()
@@ -60,22 +68,29 @@ def validate_scan_path(user_path: str, allow_absolute: bool = False,
     if not resolved.exists():
         raise PathSecurityError(f"Path does not exist: {user_path}")
 
-    # If absolute, enforce the allowed-roots allowlist
-    if resolved.is_absolute():
+    # If the user asked for an absolute path, enforce the allowlist
+    if user_path_is_absolute:
         if not allow_absolute:
             raise PathSecurityError(
                 "Absolute paths are not allowed. Use relative paths."
             )
         if allowed_roots:
+            import os
             roots = [
                 Path(r.strip()).resolve()
-                for r in allowed_roots.replace(",", ":").split(":")
+                for r in allowed_roots.replace(":", ",").split(",")
                 if r.strip()
             ]
-            if not any(
-                str(resolved).lower().startswith(str(r).lower())
-                for r in roots
-            ):
+
+            def _under_root(p: Path, root: Path) -> bool:
+                # Case-sensitive compare on POSIX (case-insensitive on
+                # Windows via normcase), and require a path-separator
+                # boundary so /srv/app does not match /srv/app_evil.
+                pr = os.path.normcase(str(p))
+                rr = os.path.normcase(str(root))
+                return pr == rr or pr.startswith(rr.rstrip(os.sep) + os.sep)
+
+            if not any(_under_root(resolved, r) for r in roots):
                 raise PathSecurityError(
                     f"Absolute path is outside allowed scan roots: {allowed_roots}"
                 )
@@ -169,12 +184,21 @@ def list_safe_files(root: Path, max_depth: int = 10, follow_symlinks: bool = Fal
         
         try:
             for item in current.iterdir():
-                if item.is_symlink() and not follow_symlinks:
-                    continue  # Skip symlinks
-                
-                if item.is_dir(follow_symlinks=follow_symlinks):
+                # Decide symlink handling explicitly: Path.is_dir()/is_file()
+                # only gained follow_symlinks in Python 3.13, so we check
+                # is_symlink() ourselves and skip (or resolve) accordingly.
+                if item.is_symlink():
+                    if not follow_symlinks:
+                        continue  # Skip symlinks
+                    try:
+                        if not item.resolve().exists():
+                            continue  # Skip broken symlinks
+                    except (OSError, RuntimeError):
+                        continue
+
+                if item.is_dir():
                     _walk(item, depth + 1)
-                elif item.is_file(follow_symlinks=follow_symlinks):
+                elif item.is_file():
                     files.append(item)
         except (OSError, PermissionError):
             # Skip inaccessible directories
